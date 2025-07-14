@@ -532,7 +532,7 @@ class ParkingSystemController:
         """단계 설정"""
         self.current_phase = phase
         self.phase_start_time = time.time()
-        print(f"🔄 단계 변경: {phase.name}")
+        print(f"==========================🔄 단계 변경: {phase.name}==========================")
     
     def _stop_vehicle(self):
         """차량 정지"""
