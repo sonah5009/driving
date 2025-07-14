@@ -4,28 +4,9 @@ import numpy as np
 import time
 import keyboard
 from threading import Lock
-import matplotlib.pyplot as plt
 import os
 
-# Jupyter 환경 감지
-def is_jupyter_environment():
-    """Jupyter 환경인지 확인"""
-    try:
-        # Jupyter 환경에서 실행 중인지 확인
-        shell = get_ipython().__class__.__name__
-        if shell == 'ZMQInteractiveShell':  # Jupyter notebook
-            return True
-        elif shell == 'TerminalInteractiveShell':  # IPython terminal
-            return False
-        else:
-            return False
-    except NameError:
-        return False
 
-# matplotlib 설정 (Jupyter 환경에서만)
-if is_jupyter_environment():
-    plt.ion()  # 인터랙티브 모드 활성화
-    print("Jupyter 환경에서 실행 중입니다. matplotlib을 사용하여 이미지를 표시합니다.")
 
 # Copyright (c) 2024 Sungkyunkwan University AutomationLab
 #
@@ -233,27 +214,10 @@ class DrivingSystemController:
 
                 # 이미지 처리 및 차량 제어
                 processed_info = self.process_and_control(frame)
-                processed_image = processed_info['processed_image']
-                bev_image = processed_info['bev_image']
-                bev_boxes = processed_info['bev_boxes']
-                lane_info = processed_info['lane_info']
-                steering_angle = processed_info['steering_angle']
-                calculated_speed = processed_info['speed']
-                processing_time = processed_info['processing_time']
                 
                 # 상태 표시
                 mode_text = "모드: " + ("자율주행" if self.control_mode == 1 else "수동주행")
                 status_text = "상태: " + ("주행중" if self.is_running else "정지")
-                
-                # 화면에 상태 정보 표시
-                # cv2.putText(processed_image, mode_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-                # cv2.putText(processed_image, status_text, (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-                
-                # cv2.imshow("Processed Image", processed_image)
-                if is_jupyter_environment():
-                    plt.imshow(cv2.cvtColor(processed_image, cv2.COLOR_BGR2RGB))
-                    plt.title(f"{mode_text}\n{status_text}")
-                    plt.pause(0.01)
 
         except KeyboardInterrupt:
             print("\n사용자에 의해 중지되었습니다.")
