@@ -108,9 +108,6 @@ def main():
         # 센서 데이터 출력 시간 제어용 변수
         last_sensor_print_time = time.time()
         
-        print("parking_controller.is_parking_mode")
-        print(parking_controller.is_parking_mode)
-        
 
         while True:
             # 키보드 입력 처리
