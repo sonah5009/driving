@@ -53,13 +53,13 @@ KANAYAMA_CONFIG = {
     'K_phi': 0.9,      # 방향각 오차 게인 0.9
     'L': 0.55,          # 휠베이스 (m)
     'lane_width': 3.5, # 차선 폭 (m)
-    'v_r': 20.0        # 기준 속도 (30.0에서 20.0으로 낮춤)
+    'v_r': 23.0        # 기준 속도 (30.0에서 20.0으로 낮춤)
 }
 
 # 히스토리 관리 설정
 HISTORY_CONFIG = {
-    'max_history_size': 10,      # 최대 히스토리 크기
-    'avg_window_size': 5,        # 평균 계산에 사용할 프레임 수
+    'max_history_size': 20,      # 최대 히스토리 크기
+    'avg_window_size': 20,        # 평균 계산에 사용할 프레임 수
     'max_no_lane_frames': 5,     # 최대 차선 미검출 프레임 수
     'default_steering_angle': 0.0,  # 기본 조향각 (직진)
     'smoothing_factor': 0.2      # 스무딩 팩터 (0~1, 높을수록 부드러움)

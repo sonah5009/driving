@@ -19,6 +19,9 @@ from config import KANAYAMA_CONFIG, HISTORY_CONFIG
 def slide_window_in_roi(binary, box, n_win=15, margin=30, minpix=10):
     """
     debugging/visualize.py의 slide_window_search_roi와 동일하게 슬라이딩 윈도우 적용
+    화면 하단 10%만 사용
+    
+    
     Args:
         binary: 2D np.array (전체 BEV 이진화 이미지)
         box: (y1, x1, y2, x2) – 전체 이미지 좌표계
@@ -33,13 +36,23 @@ def slide_window_in_roi(binary, box, n_win=15, margin=30, minpix=10):
     if roi.size == 0:
         return None, None
 
+    # 화면 하단 10%만 사용하기 위한 y 좌표 필터링
+    roi_height = roi.shape[0]
+    use_bottom_10_percent = int(roi_height * 0.2)  # 하단 10% 시작점
+    
     window_height = roi.shape[0] // n_win
     nonzero = roi.nonzero()
     nonzero_y, nonzero_x = nonzero
+    
+    # 하단 10%의 픽셀들만 사용
+    valid_mask = nonzero_y >= use_bottom_10_percent
+    nonzero_y = nonzero_y[valid_mask]
+    nonzero_x = nonzero_x[valid_mask]
+    
     left_inds = []
 
-    # ROI 내부에서 히스토그램으로 초기 좌표 찾기
-    hist = np.sum(roi[roi.shape[0]//2:,:], axis=0)
+    # ROI 내부에서 히스토그램으로 초기 좌표 찾기 (하단 10%만 사용)
+    hist = np.sum(roi[use_bottom_10_percent:,:], axis=0)
     if np.max(hist) > 0:
         current_x = np.argmax(hist)
     else:
@@ -48,6 +61,14 @@ def slide_window_in_roi(binary, box, n_win=15, margin=30, minpix=10):
     for w in range(n_win):
         y_low = roi.shape[0] - (w+1)*window_height
         y_high = roi.shape[0] - w*window_height
+        
+        # 하단 10% 영역만 사용
+        if y_high <= use_bottom_10_percent:
+            continue
+            
+        # y_low도 하단 10% 영역 내에 있도록 조정
+        y_low = max(y_low, use_bottom_10_percent)
+        
         x_low = max(0, current_x-margin)
         x_high = min(roi.shape[1], current_x+margin)
 
@@ -183,7 +204,7 @@ class ImageProcessor:
         
         return masked
 
-    def generate_left_lane_from_right(self, right_x, right_slope, right_intercept, frame_width, lane_width_pixels=160):
+    def generate_left_lane_from_right(self, right_x, right_slope, right_intercept, frame_width, lane_width_pixels=200):
         """
         오른쪽 차선을 기준으로 왼쪽 차선을 생성
         Args:
@@ -307,28 +328,46 @@ class ImageProcessor:
             left_x = np.array(left_lane_pixels_x)
             left_y = np.array(left_lane_pixels_y)
             
-            # 전체 픽셀들로 직선 피팅 (y = mx + b 형태로)
-            left_fit = np.polyfit(left_y, left_x, 1)
+            # 화면 하단 10%의 픽셀들만 사용
+            h = processed_img.shape[0]
+            use_bottom_10_percent = int(h * 0.5)
+            valid_mask = left_y >= use_bottom_10_percent
+            left_x = left_x[valid_mask]
+            left_y = left_y[valid_mask]
             
-            # 프레임 중심에서의 x 좌표 계산
-            center_y = h // 2
-            lane_info.left_x = left_fit[0] * center_y + left_fit[1]
-            lane_info.left_slope = left_fit[0]
-            lane_info.left_intercept = left_fit[1]
+            # 충분한 점이 남아있는지 확인
+            if len(left_x) > 5:
+                # 전체 픽셀들로 직선 피팅 (y = mx + b 형태로)
+                left_fit = np.polyfit(left_y, left_x, 1)
+                
+                # 프레임 중심에서의 x 좌표 계산
+                center_y = h // 2
+                lane_info.left_x = left_fit[0] * center_y + left_fit[1]
+                lane_info.left_slope = left_fit[0]
+                lane_info.left_intercept = left_fit[1]
         
         # 오른쪽 차선 픽셀들로 직선 피팅
         if len(right_lane_pixels_x) > 10:  # 충분한 점이 있을 때만
             right_x = np.array(right_lane_pixels_x)
             right_y = np.array(right_lane_pixels_y)
             
-            # 전체 픽셀들로 직선 피팅 (y = mx + b 형태로)
-            right_fit = np.polyfit(right_y, right_x, 1)
+            # 화면 하단 10%의 픽셀들만 사용
+            h = processed_img.shape[0]
+            use_bottom_10_percent = int(h * 0.5)
+            valid_mask = right_y >= use_bottom_10_percent
+            right_x = right_x[valid_mask]
+            right_y = right_y[valid_mask]
             
-            # 프레임 중심에서의 x 좌표 계산
-            center_y = h // 2
-            lane_info.right_x = right_fit[0] * center_y + right_fit[1]
-            lane_info.right_slope = right_fit[0]
-            lane_info.right_intercept = right_fit[1]
+            # 충분한 점이 남아있는지 확인
+            if len(right_x) > 5:
+                # 전체 픽셀들로 직선 피팅 (y = mx + b 형태로)
+                right_fit = np.polyfit(right_y, right_x, 1)
+                
+                # 프레임 중심에서의 x 좌표 계산
+                center_y = h // 2
+                lane_info.right_x = right_fit[0] * center_y + right_fit[1]
+                lane_info.right_slope = right_fit[0]
+                lane_info.right_intercept = right_fit[1]
         
         return lane_info
 
@@ -365,10 +404,10 @@ class ImageProcessor:
         lateral_err = (lane_cx - image_cx) / pix2m
 
         # 4) 헤딩 오차 (차선 기울기 평균)
-        heading_err = -0.5 * (lane_info.left_slope + lane_info.right_slope)
+        heading_err = -0.1 * (lane_info.left_slope + lane_info.right_slope)
 
         # 5) Kanayama 제어식 (debugging/visualize.py와 동일한 파라미터)
-        K_y, K_phi, L = 0.1, 0.3, 0.5
+        K_y, K_phi, L = 0.3, 0.9, 0.5
         v_r = Fix_Speed
         v = v_r * (math.cos(heading_err))**2
         w = v_r * (K_y * lateral_err + K_phi * math.sin(heading_err))
@@ -463,7 +502,7 @@ class ImageProcessor:
         h, w = img.shape[0], img.shape[1]
         dst_mat = [[round(w * 0.3), 0], [round(w * 0.7), 0], 
                   [round(w * 0.7), h], [round(w * 0.3), h]]
-        src_mat = [[250, 316], [380, 316], [450, 476], [200, 476]]
+        src_mat = [[230, 316], [400, 316], [450, 476], [200, 476]]
         
         # BEV 변환
         bird_img = self.bird_convert(img, srcmat=src_mat, dstmat=dst_mat)

@@ -152,7 +152,7 @@ spi0.max_speed_hz = 20000000
 spi0.mode = 0b00
 
 # 자율주행 모드 뒷바퀴 & 조향 속도 설정 (0 ~ 100)
-speed = 30  # 50에서 30으로 낮춤 (더 안전한 속도)
+speed = 5  # 50에서 30으로 낮춤 (더 안전한 속도)
 steering_speed = 50
 motors = {}
 
