@@ -32,7 +32,7 @@ class ParkingPhase(Enum):
 class ParkingSystemController:
     """자율주차 시스템 컨트롤러"""
     
-    def __init__(self, motor_controller, ultrasonic_sensors=None):
+    def __init__(self, motor_controller, ultrasonic_sensors):
         """
         주차 시스템 컨트롤러 초기화
         
@@ -43,20 +43,7 @@ class ParkingSystemController:
         self.motor_controller = motor_controller
         
         # 초음파 센서 설정
-        if ultrasonic_sensors is None:
-            # 실제 하드웨어 연결을 위한 MMIO 객체 생성
-            from pynq import MMIO
-            self.ultrasonic_sensors = {}
-            for sensor_id, address in ULTRASONIC_ADDRESSES.items():
-                try:
-                    self.ultrasonic_sensors[sensor_id] = MMIO(address, ADDRESS_RANGE)
-                    print(f"✅ {sensor_id} 센서 연결됨 (주소: {hex(address)})")
-                except Exception as e:
-                    print(f"❌ {sensor_id} 센서 연결 실패: {e}")
-                    # 연결 실패 시 None으로 설정
-                    self.ultrasonic_sensors[sensor_id] = None
-        else:
-            self.ultrasonic_sensors = ultrasonic_sensors
+        self.ultrasonic_sensors = ultrasonic_sensors
         
         # 초음파 센서 매핑 (센서 위치별)
         self.sensor_mapping = {
@@ -179,7 +166,7 @@ class ParkingSystemController:
         # 13단계: COMPLETED - 주차 완료
         
         # 스레드 안전을 위한 락
-        self._lock = Lock()
+        self.control_lock = Lock()
         
     def start_parking(self):
         """주차 시작"""
@@ -209,7 +196,7 @@ class ParkingSystemController:
     
     def stop_parking(self):
         """주차 중지"""
-        with self._lock:
+        with self.control_lock:
             self.is_parking_active = False
             self.motor_controller.reset_motor_values()
             self.status_message = "주차 중지됨"
@@ -263,6 +250,8 @@ class ParkingSystemController:
         print("🧪 센서 테스트 시작...")
         print("=" * 50)
         
+        # sensor_id, id_mapping : ultrasonic_0, ultrasonic_1, ...
+        # sensor_name, name: front_right, middle_left, middle_right, rear_left, rear_right
         for sensor_id in self.ultrasonic_sensors.keys():
             distance = self._read_single_sensor(sensor_id)
             sensor_name = None
@@ -296,7 +285,7 @@ class ParkingSystemController:
         Args:
             sensor_data: 센서 거리 데이터 딕셔너리
         """
-        with self._lock:
+        with self.control_lock:
             self.sensor_distances.update(sensor_data)
             
             # 센서별 거리 값 로그 출력
@@ -344,6 +333,11 @@ class ParkingSystemController:
         
         Args:
             sensor_id: 센서 ID (예: 'ultrasonic_0')
+            sensor: 초음파 센서 주소값 (예: 0x00B0000000)
+            DISTANCE_DATA: 0x00 (거리 데이터 레지스터 오프셋)
+            MIN_DISTANCE: (최소 거리, mm 단위) # config.py 직접 수정 필요
+            MAX_DISTANCE: (최대 거리, mm 단위) # config.py 직접 수정 필요
+            
             
         Returns:
             float: 센서 거리 (cm), 읽기 실패 시 100 반환
@@ -552,7 +546,7 @@ class ParkingSystemController:
         if not self.is_parking_active:
             return
         
-        with self._lock:
+        with self.control_lock:
             try:
                 # 실제 센서 데이터 읽기
                 sensor_data = self.read_ultrasonic_sensors()
@@ -818,7 +812,7 @@ class ParkingSystemController:
     
     def get_status(self):
         """현재 상태 반환"""
-        with self._lock:
+        with self.control_lock:
             return {
                 'phase': self.current_phase.name,
                 'phase_number': self.current_phase.value,
@@ -835,12 +829,12 @@ class ParkingSystemController:
     
     def update_parking_config(self, new_config):
         """주차 설정 업데이트"""
-        with self._lock:
+        with self.control_lock:
             self.parking_config.update(new_config)
     
     def emergency_stop(self):
         """비상 정지"""
-        with self._lock:
+        with self.control_lock:
             self._stop_vehicle()
             self.stop_parking()
             self.status_message = "비상 정지!"
@@ -848,7 +842,7 @@ class ParkingSystemController:
     
     def reset_system(self):
         """시스템 리셋"""
-        with self._lock:
+        with self.control_lock:
             self._stop_vehicle()
             self.is_parking_active = False
             self.parking_completed = False
@@ -872,7 +866,7 @@ class ParkingSystemController:
         Args:
             interval: 센서 읽기 간격 (초)
         """
-        with self._lock:
+        with self.control_lock:
             self.sensor_read_interval = interval
             print(f"📏 센서 읽기 간격 설정: {interval:.2f}초")
     
