@@ -31,6 +31,7 @@ spi0.mode = 0b00
 speed = 5  # 50에서 30으로 낮춤 (더 안전한 속도)
 steering_speed = 50
 motors = {}
+parking_mode = False
 
 # 주행 시스템 모터 값
 for name, addr in MOTOR_ADDRESSES.items():
@@ -53,7 +54,7 @@ def load_dpu():
 
 def main():
     overlay = load_dpu()
-    controller = DrivingSystemController(overlay, dpu, motors, speed, steering_speed)
+    controller = DrivingSystemController(overlay, dpu, motors, speed, steering_speed, parking_mode)
     parking_controller = ParkingSystemController(controller.motor_controller, ultrasonic_sensors)
     
     # 스레드 관리 변수 추가
@@ -87,6 +88,8 @@ def main():
                 controller.switch_mode(2)
                 break
             elif keyboard.is_pressed('p'):
+                controller.parking_mode = True
+                controller.image_processor.parking_mode = True  # 이 줄 추가!
                 parking_controller.enter_parking_mode()
                 break
             time.sleep(0.1)

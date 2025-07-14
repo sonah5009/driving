@@ -104,7 +104,7 @@ class LaneInfo:
         self.right_points = None
 
 class ImageProcessor:
-    def __init__(self, dpu, classes_path, anchors):
+    def __init__(self, dpu, classes_path, anchors, parking_mode=False):
         # 클래스 변수로 저장
         self.dpu = dpu
             
@@ -115,6 +115,9 @@ class ImageProcessor:
         self.reference_point_x = 200
         self.reference_point_y = 240
         self.point_detection_height = 20
+        
+        # 주차모드 플래그 추가
+        self.parking_mode = parking_mode
         
         # DPU 초기화 상태 추적 플래그
         self.initialized = False
@@ -134,7 +137,11 @@ class ImageProcessor:
         self.default_steering_angle = HISTORY_CONFIG['default_steering_angle']
         self.avg_window_size = HISTORY_CONFIG['avg_window_size']
         self.smoothing_factor = HISTORY_CONFIG['smoothing_factor']
-        
+    
+    def _log(self, msg):
+        if not self.parking_mode:
+            print(msg)
+    
     def load_classes(self, classes_path):
         """Load class names from the given path"""
         with open(classes_path, 'r') as f:
@@ -144,10 +151,10 @@ class ImageProcessor:
     def init_dpu(self):
         """DPU 초기화 - 한 번만 실행됨"""
         if self.initialized:
-            print("DPU 이미 초기화됨")
+            self._log("DPU 이미 초기화됨")
             return  # 이미 초기화되었으면 바로 리턴
 
-        print("DPU 초기화 중...")
+        self._log("DPU 초기화 중...")
         inputTensors = self.dpu.get_input_tensors()
         outputTensors = self.dpu.get_output_tensors()
 
@@ -166,7 +173,7 @@ class ImageProcessor:
 
         # 초기화 완료 플래그 설정
         self.initialized = True
-        print("DPU 초기화 완료")
+        self._log("DPU 초기화 완료")
 
     
     def roi_rectangle_below(self, img, cutting_idx):
@@ -379,11 +386,11 @@ class ImageProcessor:
         
         # 1) 데이터 없으면 그대로
         if lane_info.left_x == frame_width // 2 and lane_info.right_x == frame_width // 2:
-            print("차선을 찾을 수 없습니다.")
+            self._log("차선을 찾을 수 없습니다.")
             # 히스토리에서 평균값 사용
             if len(self.steering_history) > 0:
                 avg_steering = self.get_average_steering()
-                print(f"히스토리 평균 조향각 사용: {avg_steering:.2f}°")
+                self._log(f"히스토리 평균 조향각 사용: {avg_steering:.2f}°")
                 return avg_steering, self.v_r
             else:
                 return self.default_steering_angle, self.v_r
@@ -418,10 +425,10 @@ class ImageProcessor:
         steering = max(min(steering, 30.0), -30.0)
         
         # 디버깅 정보 출력
-        print(f"Lateral error: {lateral_err:.3f}m, Heading error: {math.degrees(heading_err):.1f}°")
-        print(f"Lane center: {lane_cx:.1f}, Image center: {image_cx:.1f}")
-        print(f"Steering: {steering:.2f}°, Speed: {v:.1f}")
-        print()  # 빈 줄 추가
+        self._log(f"Lateral error: {lateral_err:.3f}m, Heading error: {math.degrees(heading_err):.1f}°")
+        self._log(f"Lane center: {lane_cx:.1f}, Image center: {image_cx:.1f}")
+        self._log(f"Steering: {steering:.2f}°, Speed: {v:.1f}")
+        self._log("")  # 빈 줄 추가
         
         return steering, v
 
@@ -478,11 +485,11 @@ class ImageProcessor:
             if self.no_lane_detection_count <= self.max_no_lane_frames:
                 # 이전 값들의 평균 사용
                 robust_angle = self.get_average_steering()
-                print(f"차선 미검출: 이전 {min(self.avg_window_size, len(self.steering_history))}개 값 평균 사용 ({robust_angle:.2f}°)")
+                self._log(f"차선 미검출: 이전 {min(self.avg_window_size, len(self.steering_history))}개 값 평균 사용 ({robust_angle:.2f}°)")
                 return robust_angle
             else:
                 # 너무 오래 차선을 못 찾으면 기본값 사용
-                print(f"차선 미검출: 기본값 사용 ({self.default_steering_angle:.2f}°)")
+                self._log(f"차선 미검출: 기본값 사용 ({self.default_steering_angle:.2f}°)")
                 return self.default_steering_angle
         else:
             # 차선이 보이면 스무딩 적용
@@ -493,7 +500,7 @@ class ImageProcessor:
             
             # 스무딩이 적용되었는지 출력
             if len(self.steering_history) > 1:
-                print(f"스무딩 적용: {current_steering_angle:.2f}° → {smoothed_angle:.2f}°")
+                self._log(f"스무딩 적용: {current_steering_angle:.2f}° → {smoothed_angle:.2f}°")
             
             return smoothed_angle
 
@@ -546,7 +553,7 @@ class ImageProcessor:
             lane_info.left_x = left_x
             lane_info.left_slope = left_slope
             lane_info.left_intercept = left_intercept
-            print(f"왼쪽 차선 미검출, 오른쪽 차선 기준으로 생성: Left X={lane_info.left_x:.1f}, Slope={lane_info.left_slope:.3f}")
+            self._log(f"왼쪽 차선 미검출, 오른쪽 차선 기준으로 생성: Left X={lane_info.left_x:.1f}, Slope={lane_info.left_slope:.3f}")
         
         # 오른쪽 차선이 검출되지 않았을 때 왼쪽 차선을 기준으로 오른쪽 차선 생성
         elif lane_info.right_x == w // 2 and lane_info.left_x != w // 2:
@@ -561,7 +568,7 @@ class ImageProcessor:
             lane_info.right_x = right_x
             lane_info.right_slope = right_slope
             lane_info.right_intercept = right_intercept
-            print(f"오른쪽 차선 미검출, 왼쪽 차선 기준으로 생성: Right X={lane_info.right_x:.1f}, Slope={lane_info.right_slope:.3f}")
+            self._log(f"오른쪽 차선 미검출, 왼쪽 차선 기준으로 생성: Right X={lane_info.right_x:.1f}, Slope={lane_info.right_slope:.3f}")
         
         # 왼쪽 차선 직선 그리기 (slope/intercept 방식)
         if lane_info.left_slope != 0.0:
@@ -601,12 +608,12 @@ class ImageProcessor:
         steering_angle = self.get_robust_steering_angle(lane_info, base_steering_angle)
         
         # 차선 정보 디버깅 출력
-        print(f"Left: x={lane_info.left_x:.1f}, slope={lane_info.left_slope:.3f}")
-        print(f"Right: x={lane_info.right_x:.1f}, slope={lane_info.right_slope:.3f}")
-        print(f"Base steering: {base_steering_angle:.2f}°, Final: {steering_angle:.2f}°")
-        print(f"Calculated speed: {calculated_speed:.1f} m/s")
-        print(f"History size: {len(self.steering_history)}, No lane count: {self.no_lane_detection_count}")
-        print("-" * 50)  # 구분선 추가
+        self._log(f"Left: x={lane_info.left_x:.1f}, slope={lane_info.left_slope:.3f}")
+        self._log(f"Right: x={lane_info.right_x:.1f}, slope={lane_info.right_slope:.3f}")
+        self._log(f"Base steering: {base_steering_angle:.2f}°, Final: {steering_angle:.2f}°")
+        self._log(f"Calculated speed: {calculated_speed:.1f} m/s")
+        self._log(f"History size: {len(self.steering_history)}, No lane count: {self.no_lane_detection_count}")
+        self._log("-" * 50)  # 구분선 추가
         
         # === 최종 주행각도 영상에 표시 ===
         cv2.putText(img, f"Steering Angle: {steering_angle:.2f}°", (10, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 128, 255), 2)
