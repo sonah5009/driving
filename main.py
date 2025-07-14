@@ -107,6 +107,10 @@ def main():
 
         # 센서 데이터 출력 시간 제어용 변수
         last_sensor_print_time = time.time()
+        
+        print("parking_controller.is_parking_mode")
+        print(parking_controller.is_parking_mode)
+        
 
         while True:
             # 키보드 입력 처리
@@ -114,7 +118,7 @@ def main():
                 time.sleep(0.3)  # 디바운싱
                 if parking_controller.is_parking_active:
                     print("주차 시작 시, 중도 정지는 안되며")
-                    print("p를 눌러 주차 모드를 종료하세요")
+                    print("c를 눌러 주차 모드를 종료하세요")
                 elif parking_controller.is_parking_mode:
                     parking_controller.start_parking()
                     # print("🚗 주차 시작!")
@@ -141,7 +145,7 @@ def main():
                             print("R: 긴급 정지")
                 time.sleep(0.3)  # 디바운싱
             
-            elif keyboard.is_pressed('p'):
+            elif keyboard.is_pressed('c'):
                 time.sleep(0.3)  # 디바운싱
                 if controller.is_running:
                     print("🚗 자율주행이 실행 중입니다.")
