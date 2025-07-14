@@ -21,13 +21,13 @@ from config import classes_path, anchors
 
 
 class DrivingSystemController:
-    def __init__(self, dpu_overlay, dpu, motors, speed, steering_speed):
+    def __init__(self, dpu_overlay, dpu, motors, speed, steering_speed, parking_mode):
         """
         자율주행 차량 시스템 초기화
         Args:
             dpu_overlay: DPU 오버레이 객체
         """
-        self.image_processor = ImageProcessor(dpu, classes_path, anchors)
+        self.image_processor = ImageProcessor(dpu, classes_path, anchors, parking_mode)
         self.motor_controller = MotorController(motors)
         self.overlay = dpu_overlay
         
@@ -38,6 +38,7 @@ class DrivingSystemController:
         
         self.speed = speed
         self.steering_speed = steering_speed
+        self.parking_mode = parking_mode
         
         # 시스템 초기화
         self.init_system()
