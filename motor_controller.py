@@ -105,7 +105,8 @@ class MotorController:
                 self.last_steering_time = current_time
             duty = self.current_duty
         else:
-            print("주차 모드 right")
+            duty_percent = abs(steering_speed) / 15
+            duty = int(self.size * duty_percent)
             
         self.motors['motor_4'].write(0x08, 0)  # valid  steering_left
         self.motors['motor_5'].write(0x08, 1)  # valid  steering_right
@@ -123,7 +124,8 @@ class MotorController:
                 self.last_steering_time = current_time
             duty = self.current_duty
         else: 
-            print("주차 모드 left")
+            duty_percent = abs(steering_speed) / 15
+            duty = int(self.size * duty_percent)
             
         self.motors['motor_5'].write(0x08, 0)  # valid  steering_right
         self.motors['motor_4'].write(0x08, 1)  # valid  steering_left
@@ -138,7 +140,8 @@ class MotorController:
             self.current_duty = self.min_duty
             duty = self.current_duty
         else:
-            print("주차 모드 stay")
+            duty_percent = abs(steering_speed) / 15
+            duty = int(self.size * duty_percent)
             
         self.motors['motor_5'].write(0x08, 0)  # valid  steering_right
         self.motors['motor_4'].write(0x08, 0)  # valid  steering_left
