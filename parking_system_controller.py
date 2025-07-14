@@ -58,6 +58,7 @@ class ParkingSystemController:
         self.current_phase = ParkingPhase.WAITING
         self.status_message = "대기 중..."
         self.is_parking_active = False
+        self.is_parking_mode = False  # 주차 모드 상태 추가
         self.parking_completed = False
         
         # 스레드 종료 플래그 추가
@@ -170,42 +171,7 @@ class ParkingSystemController:
         
         # 스레드 안전을 위한 락
         self.control_lock = Lock()
-        
-    def start_parking(self):
-        """주차 시작"""
-        if not self.is_parking_active:
-            # 자율주행이 실행 중인지 확인
-            if hasattr(self.motor_controller, 'is_running') and self.motor_controller.is_running:
-                print("❌ 자율주행이 실행 중입니다. 주행을 먼저 중지하세요.")
-                return False
-            
-            print("🚗 주차 시스템 시작")
-            
-            # 센서 초기화
-            if not self.initialize_sensors():
-                print("❌ 센서 초기화 실패! 주차를 시작할 수 없습니다.")
-                return False
-            
-            # 센서 테스트
-            self.test_sensors()
-            
-            self.is_parking_active = True
-            self._reset_phase_states()
-            self._set_phase(ParkingPhase.WAITING)
-            return True
-        else:
-            print("⚠️ 주차가 이미 진행 중입니다.")
-            return False
-    
-    def stop_parking(self):
-        """주차 중지"""
-        with self.control_lock:
-            self.is_parking_active = False
-            self.should_stop_threads = True  # 스레드 종료 신호
-            self.motor_controller.reset_motor_values()
-            self.status_message = "주차 중지됨"
-            print("🛑 주차 시스템 중지")
-    
+
     def initialize_sensors(self):
         """초음파 센서 초기화 및 연결 상태 확인"""
         print("🔧 초음파 센서 초기화 중...")
@@ -236,6 +202,67 @@ class ParkingSystemController:
             print(f"❌ 실패한 센서: {', '.join(failed_sensors)}")
         
         return len(connected_sensors) > 0
+
+    def enter_parking_mode(self):
+        """주차 모드 진입"""
+        if not self.is_parking_mode:
+            # 자율주행이 실행 중인지 확인
+            if hasattr(self.motor_controller, 'is_running') and self.motor_controller.is_running:
+                print("❌ 자율주행이 실행 중입니다. 주행을 먼저 중지하세요.")
+                return False
+            
+            print("🚗 주차 모드 진입")
+            
+            # 센서 초기화
+            if not self.initialize_sensors():
+                print("❌ 센서 초기화 실패! 주차 모드에 진입할 수 없습니다.")
+                return False
+            
+            # 센서 테스트
+            self.test_sensors()
+            
+            self.is_parking_mode = True
+            self.status_message = "주차 모드 대기 중... (Space 키로 주차 시작)"
+            return True
+        else:
+            print("⚠️ 이미 주차 모드입니다.")
+            return False
+    
+    def start_parking(self):
+        """주차 시작"""
+        if not self.is_parking_active and self.is_parking_mode:
+            self.is_parking_active = True
+            self._reset_phase_states()
+            self._set_phase(ParkingPhase.WAITING)
+            self.status_message = "주차 시작됨"
+            print("🚗 주차 시작!")
+            return True
+        elif not self.is_parking_mode:
+            print("❌ 주차 모드에 먼저 진입하세요. (P 키)")
+            return False
+        else:
+            print("⚠️ 주차가 이미 진행 중입니다.")
+            return False
+    
+    def stop_parking(self):
+        """주차 중지"""
+        with self.control_lock:
+            self.is_parking_active = False
+            self.should_stop_threads = True  # 스레드 종료 신호
+            self.motor_controller.reset_motor_values()
+            self.status_message = "주차 중지됨"
+            print("🛑 주차 중지")
+    
+    def exit_parking_mode(self):
+        """주차 모드 종료"""
+        with self.control_lock:
+            self.is_parking_active = False
+            self.is_parking_mode = False
+            self.should_stop_threads = True  # 스레드 종료 신호
+            self.motor_controller.reset_motor_values()
+            self.status_message = "주차 모드 종료"
+            print("🛑 주차 모드 종료")
+    
 
     def get_sensor_distance(self, sensor_id):
         """
@@ -849,6 +876,7 @@ class ParkingSystemController:
         with self.control_lock:
             self._stop_vehicle()
             self.is_parking_active = False
+            self.is_parking_mode = False
             self.parking_completed = False
             self.should_stop_threads = True  # 스레드 종료 신호
             self.current_phase = ParkingPhase.WAITING

@@ -77,7 +77,7 @@ def main():
         print("\n주행 모드를 선택하세요:")
         print("1: 자율주행 모드")
         print("2: 수동주행 모드")
-        print("P: 주차 시스템 모드")
+        print("P: 주차 모드 진입")
         
         while True:
             if keyboard.is_pressed('1'):
@@ -87,21 +87,23 @@ def main():
                 controller.switch_mode(2)
                 break
             elif keyboard.is_pressed('p'):
-                parking_controller.start_parking()
+                parking_controller.enter_parking_mode()
                 break
             time.sleep(0.1)
 
         # 제어 안내 출력
         print("\n키보드 제어 안내:")
-        print("Space: 주행 시작/정지")
+        print("Space: 주행 및 주차 시작")
         print("1/2: 자율주행/수동주행 모드 전환")
-        print("P: 주차 시스템 시작/정지")
-        if controller.control_mode == 2:
-            print("\n수동 주행 제어:")
-            print("W/S: 전진/후진")
-            print("A/D: 좌회전/우회전")
-            print("R: 긴급 정지")
+        if controller.control_mode == 2:    
+            print("\t수동 주행 제어:")
+            print("\tW/S: 전진/후진")
+            print("\tA/D: 좌회전/우회전")
+            print("\tR: 긴급 정지")
+            
+        print("P: 주차 강제 종료")
         print("Q: 프로그램 종료\n")
+
 
         # 센서 데이터 출력 시간 제어용 변수
         last_sensor_print_time = time.time()
@@ -111,17 +113,22 @@ def main():
             if keyboard.is_pressed('space'):
                 time.sleep(0.3)  # 디바운싱
                 if parking_controller.is_parking_active:
-                    print("🚗 주차 시스템이 실행 중입니다. P 키를 눌러 주차를 중지하세요.")
+                    print("주차 시작 시, 중도 정지는 안되며")
+                    print("p를 눌러 주차 모드를 종료하세요")
+                elif parking_controller.is_parking_mode:
+                    parking_controller.start_parking()
+                    # print("🚗 주차 시작!")
                 elif controller.is_running:
                     controller.stop_driving()
-                    print("자율주행 중지됨")
-                else:
+                    # print("주행 중지됨")
+                elif not controller.is_running:
                     controller.start_driving()
-                    print("자율주행 시작됨")
+                    # print("주행 시작됨")
             
             elif keyboard.is_pressed('1') or keyboard.is_pressed('2'):
-                if parking_controller.is_parking_active:
-                    print("주차 시스템이 실행 중입니다. 주차를 먼저 중지하세요.")
+                if parking_controller.is_parking_active or parking_controller.is_parking_mode:
+                    print("🚗 주차 모드가 활성화되어 있습니다.")
+                    print("   → P 키를 눌러 주차 모드를 먼저 종료하세요.")
                 else:
                     prev_mode = controller.control_mode
                     new_mode = 1 if keyboard.is_pressed('1') else 2
@@ -137,19 +144,25 @@ def main():
             elif keyboard.is_pressed('p'):
                 time.sleep(0.3)  # 디바운싱
                 if controller.is_running:
-                    print("자율주행이 실행 중입니다. 주행을 먼저 중지하세요.")
-                elif parking_controller.is_parking_active:
-                    parking_controller.stop_parking()
-                    print("주차 시스템 중지")
+                    print("🚗 자율주행이 실행 중입니다.")
+                    print("   → Space 키를 눌러 주행을 먼저 중지하세요.")
+                elif parking_controller.is_parking_mode:
+                    parking_controller.exit_parking_mode()
+                    print("🛑 주차가 강제 종료되었습니다.")
                     # 스레드 상태 초기화
                     threads_started = False
                     parking_thread = None
                     monitor_thread = None
+                    print("\n주행 모드를 다시 선택하세요:")
+                    print("1: 자율주행 모드")
+                    print("2: 수동주행 모드")
+                    print("P: 주차 모드 진입")
+                    continue
+                    
                 else:
-                    parking_controller.start_parking()
-                    print("주차 시스템 시작")
-                    # 주차 시스템이 시작되면 자동으로 주차 실행 시작
-                    print("🚗 주차 실행을 시작합니다...")
+                    parking_controller.enter_parking_mode()
+                    print("🚗 주차 모드 진입")
+                    print("   → Space 키를 눌러 주차를 시작하세요.")
             
             if keyboard.is_pressed('q'):
                 print("\n프로그램을 종료합니다.")
@@ -170,12 +183,17 @@ def main():
                 # 주차 시스템이 활성화된 경우 자율주행 처리를 건너뜀
                 continue
 
-            # 주차 시스템이 비활성화된 경우 스레드 상태 초기화
-            elif not parking_controller.is_parking_active and threads_started:
+            # 주차 시스템이 아예 종료됐을 경우(주차가 끝났거나, 주차모드 종료) 스레드 상태 초기화
+            elif not (parking_controller.is_parking_active or parking_controller.is_parking_mode) and threads_started:
                 threads_started = False
                 parking_thread = None
                 monitor_thread = None
                 print("🔄 주차 스레드 중지됨")
+
+                # 주차모드에서 주차가 중간에 중지되거나 종료된 거라 카메라 안씀
+                # 그래서 뒤에 있는 코드 실행하지 않고 넘어가기 위해 continue 사용해야하는 지 고민 중
+                continue
+
 
             # 프레임 처리 (주차 시스템이 비활성화된 경우에만)
             ret, frame = cap.read()
