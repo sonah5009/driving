@@ -131,8 +131,8 @@ class ParkingSystemController:
             'steering_speed': 50,     # 조향 속도 (0-100)
             
             # ===== 조향각 설정 (각 단계별로 직접 수정) =====
-            'left_turn_angle': -20,   # 좌회전 각도 (3단계: LEFT_TURN_FORWARD)
-            'right_turn_angle': 13,   # 우회전 각도 (5단계: RIGHT_TURN_BACKWARD)
+            'left_turn_angle': -50,   # 좌회전 각도 (3단계: LEFT_TURN_FORWARD)
+            'right_turn_angle': 50,   # 우회전 각도 (5단계: RIGHT_TURN_BACKWARD)
             'correction_angle': 15,   # 수정 조향 각도 (10단계: CORRECTION)
             'final_right_turn_angle': 20,  # 최종 우회전 각도 (13단계: FINAL_FORWARD)
             'alignment_steering_angle': 5,  # 정렬 조향 각도 (8단계: ALIGNMENT)
