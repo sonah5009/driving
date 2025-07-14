@@ -98,12 +98,14 @@ class MotorController:
             duty_percent = abs(steering_speed) / 15
             duty = int(self.size * duty_percent)            
             # duty = self.auto_duty
-        else:  # 수동 주행 모드
+        elif control_mode == 2:  # 수동 주행 모드
             current_time = time.time()
             if current_time - self.last_steering_time > 0.05:
                 self.current_duty = min(self.max_duty, self.current_duty + self.duty_step)
                 self.last_steering_time = current_time
             duty = self.current_duty
+        else:
+            print("주차 모드 right")
             
         self.motors['motor_4'].write(0x08, 0)  # valid  steering_left
         self.motors['motor_5'].write(0x08, 1)  # valid  steering_right
@@ -114,12 +116,14 @@ class MotorController:
         if control_mode == 1:  # 자율주행 모드
             duty_percent = abs(steering_speed) / 15
             duty = int(self.size * duty_percent)
-        else:  # 수동 주행 모드
+        elif control_mode == 2:  # 수동 주행 모드
             current_time = time.time()
             if current_time - self.last_steering_time > 0.05:
                 self.current_duty = min(self.max_duty, self.current_duty + self.duty_step)
                 self.last_steering_time = current_time
             duty = self.current_duty
+        else: 
+            print("주차 모드 left")
             
         self.motors['motor_5'].write(0x08, 0)  # valid  steering_right
         self.motors['motor_4'].write(0x08, 1)  # valid  steering_left
@@ -130,9 +134,11 @@ class MotorController:
         if control_mode == 1:  # 자율주행 모드
             duty_percent = abs(steering_speed) / 15
             duty = int(self.size * duty_percent)
-        else:  # 수동 주행 모드
+        elif control_mode == 2:  # 수동 주행 모드
             self.current_duty = self.min_duty
             duty = self.current_duty
+        else:
+            print("주차 모드 stay")
             
         self.motors['motor_5'].write(0x08, 0)  # valid  steering_right
         self.motors['motor_4'].write(0x08, 0)  # valid  steering_left
@@ -250,3 +256,7 @@ class MotorController:
         self.set_left_speed(self.left_speed)
         self.set_right_speed(self.right_speed)
         self.control_motors(control_mode=2)
+
+    def control_motors_parking(self):
+        """주차 모드에서의 모터 제어"""
+
