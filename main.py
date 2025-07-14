@@ -16,6 +16,8 @@ from parking_system_controller import ParkingSystemController
 from image_processor import ImageProcessor
 from config import MOTOR_ADDRESSES, ULTRASONIC_ADDRESSES, ADDRESS_RANGE
 from AutoLab_lib import init
+import threading
+
 
 
 init()
@@ -53,6 +55,11 @@ def main():
     overlay = load_dpu()
     controller = DrivingSystemController(overlay, dpu, motors, speed, steering_speed)
     parking_controller = ParkingSystemController(controller.motor_controller, ultrasonic_sensors)
+    
+    # 스레드 관리 변수 추가
+    parking_thread = None
+    monitor_thread = None
+    threads_started = False
     
     try:
         # 카메라 초기화
@@ -134,25 +141,41 @@ def main():
                 elif parking_controller.is_parking_active:
                     parking_controller.stop_parking()
                     print("주차 시스템 중지")
+                    # 스레드 상태 초기화
+                    threads_started = False
+                    parking_thread = None
+                    monitor_thread = None
                 else:
                     parking_controller.start_parking()
                     print("주차 시스템 시작")
                     # 주차 시스템이 시작되면 자동으로 주차 실행 시작
-                    print("�� 주차 실행을 시작합니다...")
+                    print("🚗 주차 실행을 시작합니다...")
             
             if keyboard.is_pressed('q'):
                 print("\n프로그램을 종료합니다.")
                 break
 
-
             # 주차 시스템 실행 (활성화된 경우)
-            if parking_controller.is_parking_active:
-                parking_controller.execute_parking_cycle()
-                parking_status = parking_controller.get_status()
-                print(f"주차 상태: {parking_status['status_message']} (단계: {parking_status['phase']})")
+            if parking_controller.is_parking_active and not threads_started:
+                # 스레드가 아직 시작되지 않은 경우에만 새로 생성
+                parking_thread = threading.Thread(target=parking_controller.parking_cycle_thread, daemon=True)
+                monitor_thread = threading.Thread(target=parking_controller.status_monitor_thread, daemon=True)
+
+                parking_thread.start()
+                monitor_thread.start()
+                threads_started = True
+                
+                print("🔄 주차 스레드 시작됨")
                 
                 # 주차 시스템이 활성화된 경우 자율주행 처리를 건너뜀
                 continue
+
+            # 주차 시스템이 비활성화된 경우 스레드 상태 초기화
+            elif not parking_controller.is_parking_active and threads_started:
+                threads_started = False
+                parking_thread = None
+                monitor_thread = None
+                print("🔄 주차 스레드 중지됨")
 
             # 프레임 처리 (주차 시스템이 비활성화된 경우에만)
             ret, frame = cap.read()
@@ -172,6 +195,14 @@ def main():
         cv2.destroyAllWindows()
         controller.stop_driving()
         parking_controller.stop_parking()
+        
+        # 스레드 정리
+        if parking_thread and parking_thread.is_alive():
+            parking_controller.stop_parking()  # 스레드 종료 신호
+            parking_thread.join(timeout=2.0)  # 2초 대기
+        if monitor_thread and monitor_thread.is_alive():
+            monitor_thread.join(timeout=2.0)  # 2초 대기
+            
         print("모든 시스템이 정리되었습니다.")
 
 if __name__ == "__main__":

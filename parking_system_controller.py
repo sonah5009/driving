@@ -60,6 +60,9 @@ class ParkingSystemController:
         self.is_parking_active = False
         self.parking_completed = False
         
+        # 스레드 종료 플래그 추가
+        self.should_stop_threads = False
+        
         # 센서 데이터
         self.sensor_distances = {
             "front_right": 100,
@@ -198,6 +201,7 @@ class ParkingSystemController:
         """주차 중지"""
         with self.control_lock:
             self.is_parking_active = False
+            self.should_stop_threads = True  # 스레드 종료 신호
             self.motor_controller.reset_motor_values()
             self.status_message = "주차 중지됨"
             print("🛑 주차 시스템 중지")
@@ -548,14 +552,14 @@ class ParkingSystemController:
         
         with self.control_lock:
             try:
-                # 실제 센서 데이터 읽기
-                sensor_data = self.read_ultrasonic_sensors()
-                self.update_sensor_data(sensor_data)
+                # # 실제 센서 데이터 읽기
+                # sensor_data = self.read_ultrasonic_sensors()
+                # self.update_sensor_data(sensor_data)
                 
-                # 센서 데이터 출력 (디버깅용)
-                print(f"🔍 센서 데이터 - 전방우측: {sensor_data['front_right']:.1f}cm, "
-                      f"중간우측: {sensor_data['middle_right']:.1f}cm, "
-                      f"후방우측: {sensor_data['rear_right']:.1f}cm")
+                # # 센서 데이터 출력 (디버깅용)
+                # print(f"🔍 센서 데이터 - 전방우측: {sensor_data['front_right']:.1f}cm, "
+                #       f"중간우측: {sensor_data['middle_right']:.1f}cm, "
+                #       f"후방우측: {sensor_data['rear_right']:.1f}cm")
                 
                 if self.current_phase == ParkingPhase.WAITING:
                     self._execute_waiting_phase()
@@ -846,6 +850,7 @@ class ParkingSystemController:
             self._stop_vehicle()
             self.is_parking_active = False
             self.parking_completed = False
+            self.should_stop_threads = True  # 스레드 종료 신호
             self.current_phase = ParkingPhase.WAITING
             self.status_message = "시스템 리셋됨"
             self._reset_phase_states()
@@ -859,17 +864,51 @@ class ParkingSystemController:
             
             print("🔄 시스템 리셋 완료")
     
-    def set_sensor_read_interval(self, interval):
-        """
-        센서 읽기 간격 설정
+    def parking_cycle_thread(self):
+        """주차 사이클 실행 스레드"""
+        while self.is_parking_active and not self.should_stop_threads:
+            try:
+                # 센서 데이터 읽기
+                sensor_data = self.read_ultrasonic_sensors()
+                self.update_sensor_data(sensor_data)
+                
+                # 주차 사이클 실행
+                self.execute_parking_cycle()
+                
+                # 주차 완료 확인
+                if self.parking_completed:
+                    print("🎉 주차 완료!")
+                    self.is_parking_active = False
+                    break
+                
+                time.sleep(0.1)  # 100ms 주기
+                
+            except Exception as e:
+                print(f"❌ 주차 사이클 오류: {e}")
+                self.emergency_stop()
+                break
         
-        Args:
-            interval: 센서 읽기 간격 (초)
-        """
-        with self.control_lock:
-            self.sensor_read_interval = interval
-            print(f"📏 센서 읽기 간격 설정: {interval:.2f}초")
+        print("🔄 주차 사이클 스레드 종료")
     
-    def get_sensor_read_interval(self):
-        """센서 읽기 간격 반환"""
-        return self.sensor_read_interval 
+    def status_monitor_thread(self):
+        """상태 모니터링 스레드"""
+        while self.is_parking_active and not self.should_stop_threads:
+            try:
+                status = self.get_status()
+                print(f"📊 단계: {status['phase']} - {status['status_message']}")
+                
+                # 센서 거리 출력
+                distances = status['sensor_distances']
+                print(f"   센서: 전방우측={distances['front_right']:.1f}, "
+                        f"중간좌측={distances['middle_left']:.1f}, "
+                        f"중간우측={distances['middle_right']:.1f}, "
+                        f"후방좌측={distances['rear_left']:.1f}, "
+                        f"후방우측={distances['rear_right']:.1f}")
+                
+            except Exception as e:
+                print(f"❌ 상태 모니터링 오류: {e}")
+            
+            time.sleep(1.0)  # 1초 주기
+        
+        print("🔄 상태 모니터링 스레드 종료")
+   
