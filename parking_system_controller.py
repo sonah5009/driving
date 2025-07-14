@@ -126,9 +126,9 @@ class ParkingSystemController:
         # 각 단계별로 직접 수정 가능
         self.parking_config = {
             # ===== 속도 설정 =====
-            'forward_speed': 100,      # 전진 속도 (0-100)
-            'backward_speed': 100,     # 후진 속도 (0-100)
-            'steering_speed': 100,     # 조향 속도 (0-100)
+            'forward_speed': 50,      # 전진 속도 (0-100)
+            'backward_speed': 40,     # 후진 속도 (0-100)
+            'steering_speed': 50,     # 조향 속도 (0-100)
             
             # ===== 조향각 설정 (각 단계별로 직접 수정) =====
             'left_turn_angle': -20,   # 좌회전 각도 (3단계: LEFT_TURN_FORWARD)
