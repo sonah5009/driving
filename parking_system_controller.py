@@ -635,7 +635,7 @@ class ParkingSystemController:
     
     def _execute_initial_forward_phase(self):
         """초기 전진 단계 실행"""
-        self._move_forward()
+        self._move_forward(self.parking_config['forward_speed'])
         self._straight_steering()
         self.status_message = "똑바로 전진 중..."
         
@@ -734,7 +734,7 @@ class ParkingSystemController:
         if not self.phase_states['correction_started']:
             self.correction_start_time = time.time()
             self.phase_states['correction_started'] = True
-            self._move_forward()
+            self._move_forward(self.parking_config['forward_speed'])
             
             # 수정 방향 결정 (한 번만)
             if "좌측으로 치우침" in self.status_message:
@@ -814,7 +814,7 @@ class ParkingSystemController:
         """최종 전진 단계 실행 - 우회전 로직 완전 구현"""
         if not self.phase_states['parking_completion_forward_started']:
             self._straight_steering()
-            self._move_forward()
+            self._move_forward(self.parking_config['forward_speed'])
             self.phase_states['parking_completion_forward_started'] = True
             self.status_message = "최종 정방향 주행 중..."
         
