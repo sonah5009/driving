@@ -271,10 +271,10 @@ class MotorController:
         """주차 모드에서의 모터 제어"""
         if direction == 'left':
             self.left_speed = speed
-            self.left(speed, 3)
+            # self.left(speed, 3)
         elif direction == 'right':
             self.right_speed = speed
-            self.right(speed, 3)
+            # self.right(speed, 3)
         elif direction == 'straight':
             self.left_speed = speed
             self.right_speed = speed
