@@ -509,7 +509,7 @@ class ImageProcessor:
         h, w = img.shape[0], img.shape[1]
         dst_mat = [[round(w * 0.3), 0], [round(w * 0.7), 0], 
                   [round(w * 0.7), h], [round(w * 0.3), h]]
-        src_mat = [[230, 316], [400, 316], [450, 476], [200, 476]]
+        src_mat = [[238, 276], [382, 276], [450, 436], [200, 436]]
         
         # BEV 변환
         bird_img = self.bird_convert(img, srcmat=src_mat, dstmat=dst_mat)

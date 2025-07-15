@@ -316,16 +316,16 @@ class ParkingSystemController:
         Args:
             sensor_data: 센서 거리 데이터 딕셔너리
         """
-        with self.control_lock:
-            self.sensor_distances.update(sensor_data)
-            
-            # 센서별 거리 값 로그 출력
-            print(f"📏 [센서 거리] FR:{sensor_data.get('front_right', 0):.1f}cm, "
-                  f"ML:{sensor_data.get('middle_left', 0):.1f}cm, "
-                  f"MR:{sensor_data.get('middle_right', 0):.1f}cm, "
-                  f"RL:{sensor_data.get('rear_left', 0):.1f}cm, "
-                  f"RR:{sensor_data.get('rear_right', 0):.1f}cm")
-    
+    # with self.control_lock:
+        self.sensor_distances.update(sensor_data)
+
+        # 센서별 거리 값 로그 출력
+        print(f"📏 [센서 거리] FR:{sensor_data.get('front_right', 0):.1f}cm, "
+              f"ML:{sensor_data.get('middle_left', 0):.1f}cm, "
+              f"MR:{sensor_data.get('middle_right', 0):.1f}cm, "
+              f"RL:{sensor_data.get('rear_left', 0):.1f}cm, "
+              f"RR:{sensor_data.get('rear_right', 0):.1f}cm")
+
     def read_ultrasonic_sensors(self):
         """
         초음파 센서에서 실제 데이터 읽기
@@ -579,14 +579,14 @@ class ParkingSystemController:
         
         with self.control_lock:
             try:
-                # # 실제 센서 데이터 읽기
-                # sensor_data = self.read_ultrasonic_sensors()
-                # self.update_sensor_data(sensor_data)
+                # 실제 센서 데이터 읽기
+                sensor_data = self.read_ultrasonic_sensors()
+                self.update_sensor_data(sensor_data)
                 
-                # # 센서 데이터 출력 (디버깅용)
-                # print(f"🔍 센서 데이터 - 전방우측: {sensor_data['front_right']:.1f}cm, "
-                #       f"중간우측: {sensor_data['middle_right']:.1f}cm, "
-                #       f"후방우측: {sensor_data['rear_right']:.1f}cm")
+                # 센서 데이터 출력 (디버깅용)
+                print(f"🔍 센서 데이터 - 전방우측: {sensor_data['front_right']:.1f}cm, "
+                      f"중간우측: {sensor_data['middle_right']:.1f}cm, "
+                      f"후방우측: {sensor_data['rear_right']:.1f}cm")
                 
                 if self.current_phase == ParkingPhase.WAITING:
                     self._execute_waiting_phase()

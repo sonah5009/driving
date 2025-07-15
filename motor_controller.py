@@ -38,8 +38,8 @@ class MotorController:
         self.spi.mode = 0b00
         
         # 저항 값 범위 설정
-        self.resistance_most_left = 3100
-        self.resistance_most_right = 2350
+        self.resistance_most_left = 2850
+        self.resistance_most_right = 2250
     @property
     def steering_speed(self):
         return self._steering_speed
@@ -95,7 +95,7 @@ class MotorController:
     def right(self, steering_speed, control_mode=1):
         """우회전 제어"""
         if control_mode == 1:  # 자율주행 모드
-            duty_percent = abs(steering_speed) / 15
+            duty_percent = abs(steering_speed) / 10
             duty = int(self.size * duty_percent)            
             # duty = self.auto_duty
         elif control_mode == 2:  # 수동 주행 모드
@@ -105,9 +105,10 @@ class MotorController:
                 self.last_steering_time = current_time
             duty = self.current_duty
         else:
-            duty_percent = abs(steering_speed) / 15
+            duty_percent = abs(steering_speed) / 10
             duty = int(self.size * duty_percent)
             
+        print("right duty", duty)    
         self.motors['motor_4'].write(0x08, 0)  # valid  steering_left
         self.motors['motor_5'].write(0x08, 1)  # valid  steering_right
         self.motors['motor_5'].write(0x04, duty)
@@ -115,7 +116,7 @@ class MotorController:
     def left(self, steering_speed, control_mode=1):
         """좌회전 제어"""
         if control_mode == 1:  # 자율주행 모드
-            duty_percent = abs(steering_speed) / 15
+            duty_percent = abs(steering_speed) / 10
             duty = int(self.size * duty_percent)
         elif control_mode == 2:  # 수동 주행 모드
             current_time = time.time()
@@ -127,6 +128,7 @@ class MotorController:
             duty_percent = abs(steering_speed) / 15
             duty = int(self.size * duty_percent)
             
+        print("left duty", duty)    
         self.motors['motor_5'].write(0x08, 0)  # valid  steering_right
         self.motors['motor_4'].write(0x08, 1)  # valid  steering_left
         self.motors['motor_4'].write(0x04, duty)
@@ -134,7 +136,7 @@ class MotorController:
     def stay(self, steering_speed, control_mode=1):
         """중립 상태 유지"""
         if control_mode == 1:  # 자율주행 모드
-            duty_percent = abs(steering_speed) / 15
+            duty_percent = abs(steering_speed) / 10
             duty = int(self.size * duty_percent)
         elif control_mode == 2:  # 수동 주행 모드
             self.current_duty = self.min_duty
@@ -143,6 +145,7 @@ class MotorController:
             duty_percent = abs(steering_speed) / 15
             duty = int(self.size * duty_percent)
             
+        print("stay duty", duty)    
         self.motors['motor_5'].write(0x08, 0)  # valid  steering_right
         self.motors['motor_4'].write(0x08, 0)  # valid  steering_left
         self.motors['motor_5'].write(0x04, duty)

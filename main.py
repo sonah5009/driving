@@ -179,7 +179,7 @@ def main():
                 monitor_thread = threading.Thread(target=parking_controller.status_monitor_thread, daemon=True)
 
                 parking_thread.start()
-                monitor_thread.start()
+                # monitor_thread.start()
                 threads_started = True
                 
                 print("🔄 주차 스레드 시작됨")
