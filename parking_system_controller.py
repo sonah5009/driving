@@ -144,7 +144,7 @@ class ParkingSystemController:
             'correction_threshold': 10, # 수정 임계값 (cm) - 9단계(POSITION_CHECK)
             'sensor_detection_threshold': 200,  # 센서 감지 임계값 (cm) - 2단계(FIRST_STOP)
             'second_stop_threshold': 100,  # 두 번째 정지 임계값 (cm) - 4단계(SECOND_STOP)
-            'rear_right_increase_threshold': 15,  # rear_right 증가 임계값 (cm) - 13단계(FINAL_FORWARD)
+            'rear_right_increase_threshold': 100,  # rear_right 증가 임계값 (cm) - 13단계(FINAL_FORWARD)
             
             # ===== 시간 설정 (각 단계별로 직접 수정) =====
             'straight_backward_duration': 0.3, # 정방향 후진 시간 (초) - 7단계(STRAIGHT_BACKWARD)
