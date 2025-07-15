@@ -628,43 +628,33 @@ class ParkingSystemController:
                 
                 if self.current_phase == ParkingPhase.WAITING:
                     self._execute_waiting_phase()
-                    time.sleep(2)
                 elif self.current_phase == ParkingPhase.INITIAL_FORWARD:
                     self._execute_initial_forward_phase()
-                    time.sleep(2)
                 elif self.current_phase == ParkingPhase.FIRST_STOP:
                     self._execute_first_stop_phase()
                     time.sleep(2)
                 elif self.current_phase == ParkingPhase.LEFT_TURN_FORWARD:
                     self._execute_left_turn_forward_phase()
-                    time.sleep(2)
                 elif self.current_phase == ParkingPhase.SECOND_STOP:
                     self._execute_second_stop_phase()
                     time.sleep(2)
                 elif self.current_phase == ParkingPhase.RIGHT_TURN_BACKWARD:
                     self._execute_right_turn_backward_phase()
-                    time.sleep(2)
                 elif self.current_phase == ParkingPhase.STRAIGHT_BACKWARD:
                     self._execute_straight_backward_phase()
-                    time.sleep(2)
                 elif self.current_phase == ParkingPhase.ALIGNMENT:
                     self._execute_alignment_phase()
-                    time.sleep(2)
                 elif self.current_phase == ParkingPhase.POSITION_CHECK:
                     self._execute_position_check_phase()
-                    time.sleep(2)
                 elif self.current_phase == ParkingPhase.CORRECTION:
                     self._execute_correction_phase()
-                    time.sleep(2)
                 elif self.current_phase == ParkingPhase.POST_CORRECTION_BACKWARD:
                     self._execute_post_correction_backward_phase()
-                    time.sleep(2)
                 elif self.current_phase == ParkingPhase.PARKING_COMPLETE_STOP:
                     self._execute_parking_complete_stop_phase()
                     time.sleep(2)
                 elif self.current_phase == ParkingPhase.FINAL_FORWARD:
                     self._execute_final_forward_phase()
-                    time.sleep(2)
                 elif self.current_phase == ParkingPhase.COMPLETED:
                     self._execute_completed_phase()
                     
