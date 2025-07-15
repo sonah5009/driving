@@ -909,7 +909,7 @@ class ParkingSystemController:
                     self.is_parking_active = False
                     break
                 
-                time.sleep(0.1)  # 100ms 주기
+                time.sleep(0.7)  # 700ms 주기
                 
             except Exception as e:
                 print(f"❌ 주차 사이클 오류: {e}")
