@@ -548,7 +548,7 @@ class ImageProcessor:
         # 왼쪽 차선이 검출되지 않았을 때 오른쪽 차선을 기준으로 왼쪽 차선 생성
         if lane_info.left_x == w // 2 and lane_info.right_x != w // 2:
             left_x, left_slope, left_intercept = self.generate_left_lane_from_right(
-                lane_info.right_x, lane_info.right_slope, lane_info.right_intercept, w, lane_width_pixels=160
+                lane_info.right_x, lane_info.right_slope, lane_info.right_intercept, w, lane_width_pixels=200
             )
             lane_info.left_x = left_x
             lane_info.left_slope = left_slope
@@ -558,9 +558,9 @@ class ImageProcessor:
         # 오른쪽 차선이 검출되지 않았을 때 왼쪽 차선을 기준으로 오른쪽 차선 생성
         elif lane_info.right_x == w // 2 and lane_info.left_x != w // 2:
             # 왼쪽 차선을 기준으로 오른쪽 차선 생성 (180픽셀 오른쪽)
-            right_x = lane_info.left_x + 160
+            right_x = lane_info.left_x + 200
             right_slope = lane_info.left_slope  # 기울기는 동일
-            right_intercept = lane_info.left_intercept + 160  # y절편도 동일한 간격만큼 조정
+            right_intercept = lane_info.left_intercept + 200  # y절편도 동일한 간격만큼 조정
             
             # 프레임 범위 내로 제한
             right_x = max(0, min(right_x, w - 1))
