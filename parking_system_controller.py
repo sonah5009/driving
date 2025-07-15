@@ -47,11 +47,12 @@ class ParkingSystemController:
         
         # 초음파 센서 매핑 (센서 위치별)
         self.sensor_mapping = {
-            "front_right": "ultrasonic_0",    # 전방 우측
-            "middle_left": "ultrasonic_1",    # 중간 좌측
-            "middle_right": "ultrasonic_2",   # 중간 우측
-            "rear_left": "ultrasonic_3",      # 후방 좌측
-            "rear_right": "ultrasonic_4"      # 후방 우측
+            "front_right": "ultrasonic_0",    # 좌측 하단
+            "middle_left": "ultrasonic_1",    # 좌측 중단
+            
+            "middle_right": "ultrasonic_2",   # 우측 하단
+            "rear_left": "ultrasonic_3",      # 우측 중단
+            "rear_right": "ultrasonic_4"      # 우측 상단
         }
         
         # 주차 상태 변수
@@ -126,8 +127,8 @@ class ParkingSystemController:
         # 각 단계별로 직접 수정 가능
         self.parking_config = {
             # ===== 속도 설정 =====
-            'forward_speed': 50.0,      # 전진 속도 (0-100)
-            'backward_speed': 40.0,     # 후진 속도 (0-100)
+            'forward_speed': .0,      # 전진 속도 (0-100)
+            'backward_speed': 30.0,     # 후진 속도 (0-100)
             'steering_speed': 50.0,     # 조향 속도 (0-100)
             
             # ===== 조향각 설정 (각 단계별로 직접 수정) =====
@@ -141,8 +142,8 @@ class ParkingSystemController:
             'stop_distance': 40,      # 정지 거리 (cm) - 6단계(STRAIGHT_BACKWARD), 11단계(POST_CORRECTION_BACKWARD)
             'alignment_tolerance': 3, # 정렬 허용 오차 (cm) - 8단계(ALIGNMENT)
             'correction_threshold': 10, # 수정 임계값 (cm) - 9단계(POSITION_CHECK)
-            'sensor_detection_threshold': 5,  # 센서 감지 임계값 (cm) - 2단계(FIRST_STOP)
-            'second_stop_threshold': 10,  # 두 번째 정지 임계값 (cm) - 4단계(SECOND_STOP)
+            'sensor_detection_threshold': 200,  # 센서 감지 임계값 (cm) - 2단계(FIRST_STOP)
+            'second_stop_threshold': 100,  # 두 번째 정지 임계값 (cm) - 4단계(SECOND_STOP)
             'rear_right_increase_threshold': 15,  # rear_right 증가 임계값 (cm) - 13단계(FINAL_FORWARD)
             
             # ===== 시간 설정 (각 단계별로 직접 수정) =====
@@ -343,7 +344,7 @@ class ParkingSystemController:
                     sensor_data[sensor_name] = distance
                 else:
                     # 센서가 없으면 기본값 사용
-                    sensor_data[sensor_name] = 100
+                    sensor_data[sensor_name] = 1000
             
             return sensor_data
             
@@ -351,11 +352,11 @@ class ParkingSystemController:
             print(f"센서 읽기 오류: {e}")
             # 오류 시 기본값 반환
             return {
-                "front_right": 100,
-                "middle_left": 100,
-                "middle_right": 100,
-                "rear_left": 100,
-                "rear_right": 100
+                "front_right": 1000,
+                "middle_left": 1000,
+                "middle_right": 1000,
+                "rear_left": 1000,
+                "rear_right": 1000
             }
     
     def _read_single_sensor(self, sensor_id):
@@ -366,8 +367,8 @@ class ParkingSystemController:
             sensor_id: 센서 ID (예: 'ultrasonic_0')
             sensor: 초음파 센서 주소값 (예: 0x00B0000000)
             DISTANCE_DATA: 0x00 (거리 데이터 레지스터 오프셋)
-            MIN_DISTANCE: (최소 거리, mm 단위) # config.py 직접 수정 필요
-            MAX_DISTANCE: (최대 거리, mm 단위) # config.py 직접 수정 필요
+            MIN_DISTANCE: (최소 거리, cm 단위) # config.py 직접 수정 필요
+            MAX_DISTANCE: (최대 거리, cm 단위) # config.py 직접 수정 필요
             
             
         Returns:
@@ -380,35 +381,34 @@ class ParkingSystemController:
                 # 센서가 연결되지 않은 경우
                 if sensor is None:
                     print(f"⚠️ {sensor_id} 센서가 연결되지 않음")
-                    return 100
+                    return 1000
                 
                 # 실제 센서 읽기 구현
                 try:
                     # 거리 데이터 읽기 (직접 정수값으로 읽기)
-                    distance_mm = sensor.read(ULTRASONIC_REGISTERS['DISTANCE_DATA'])
-                    distance_cm = distance_mm / 10.0  # mm를 cm로 변환
+                    distance_cm = sensor.read(ULTRASONIC_REGISTERS['DISTANCE_DATA'])
                     
                     # 유효한 거리 범위 확인
-                    min_distance = ULTRASONIC_CONFIG['MIN_DISTANCE'] / 10.0  # mm를 cm로 변환
-                    max_distance = ULTRASONIC_CONFIG['MAX_DISTANCE'] / 10.0  # mm를 cm로 변환
+                    min_distance = ULTRASONIC_CONFIG['MIN_DISTANCE']   # mm를 cm로 변환
+                    max_distance = ULTRASONIC_CONFIG['MAX_DISTANCE']   # mm를 cm로 변환
                     
                     if min_distance <= distance_cm <= max_distance:
                         print(f"✅ {sensor_id} 거리 읽기 성공: {distance_cm:.1f}cm")
                         return distance_cm
                     else:
-                        print(f"⚠️ {sensor_id} 거리 범위 초과: {distance_cm:.1f}cm (범위: {min_distance:.1f}~{max_distance:.1f}cm)")
-                        return 100
+                        print(f"⚠️ {sensor_id} 거리 범위 초과: 1000cm (범위: {min_distance:.1f}~{max_distance:.1f}cm)")
+                        return 1000
                         
                 except Exception as read_error:
                     print(f"❌ {sensor_id} 하드웨어 읽기 오류: {read_error}")
-                    return 100
+                    return 1000
             else:
                 print(f"❌ {sensor_id} 센서가 등록되지 않음")
-                return 100
+                return 1000
                 
         except Exception as e:
             print(f"❌ {sensor_id} 센서 읽기 오류: {e}")
-            return 100
+            return 1000
     
     def _get_sensor_distance(self, sensor_name):
         """센서 거리 가져오기"""
