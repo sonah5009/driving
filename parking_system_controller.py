@@ -317,13 +317,12 @@ class ParkingSystemController:
         Args:
             sensor_data: 센서 거리 데이터 딕셔너리
         """
-        with self.control_lock:
-            # 0이면 이전 값 유지, 아니면 업데이트
-            for key, value in sensor_data.items():
-                if value == 0:
-                    continue  # 0이면 무시
-                self.sensor_distances[key] = value
-            
+        # 0이면 이전 값 유지, 아니면 업데이트
+        for key, value in sensor_data.items():
+            if value == 0:
+                continue  # 0이면 무시
+            self.sensor_distances[key] = value
+        
             # 센서별 거리 값 로그 출력
             print(f"📏 [센서 거리] FR:{sensor_data.get('front_right', 0):.1f}cm, "
                 f"ML:{sensor_data.get('middle_left', 0):.1f}cm, "
