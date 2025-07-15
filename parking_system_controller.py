@@ -558,25 +558,29 @@ class ParkingSystemController:
     
     def _turn_left(self):
         """좌회전 - 설정된 각도로 조향"""
+        speed = self.parking_config['steering_speed']
         angle = self.parking_config['left_turn_angle']
         print(f"[PARKING_DEBUG] 좌회전: {angle}도")
-        self.motor_controller.control_motors(angle, control_mode=1)
+        self.motor_controller.control_motors_parking(angle, speed, 'left')
     
     def _turn_right(self):
         """우회전 - 설정된 각도로 조향"""
+        speed = self.parking_config['steering_speed']
         angle = self.parking_config['right_turn_angle']
         print(f"[PARKING_DEBUG] 우회전: {angle}도")
-        self.motor_controller.control_motors(angle, control_mode=1)
+        self.motor_controller.control_motors_parking(angle, speed, 'right')
     
     def _straight_steering(self):
         """직진 조향 - 0도로 조향"""
+        speed = self.parking_config['steering_speed']
         print(f"[PARKING_DEBUG] 직진: 0도")
-        self.motor_controller.control_motors(0.0, control_mode=1)
+        self.motor_controller.control_motors_parking(0.0, speed, 'straight')
     
     def _set_steering_angle(self, angle):
         """특정 각도로 조향 설정"""
+        speed = self.parking_config['steering_speed']
         print(f"[PARKING_DEBUG] 조향각 설정: {angle}도")
-        self.motor_controller.control_motors(angle, control_mode=1)
+        self.motor_controller.control_motors_parking(angle, speed, 'steering')
     
     def execute_parking_cycle(self):
         """주차 사이클 실행"""
@@ -671,7 +675,7 @@ class ParkingSystemController:
         """우회전 후진 단계 실행 - 조향각 점진적 조정 추가"""
         if not self.phase_states['right_turn_started']:
             self._turn_right()
-            self._move_backward()
+            self._move_backward(self.parking_config['backward_speed'])
             self.phase_states['right_turn_started'] = True
             self.backward_start_time = time.time()
             self.status_message = "오른쪽 조향 후진 중..."
@@ -702,7 +706,7 @@ class ParkingSystemController:
         """정방향 후진 단계 실행"""
         if not self.phase_states['straight_backward_started']:
             self._straight_steering()
-            self._move_backward()
+            self._move_backward(self.parking_config['backward_speed'])
             self.phase_states['straight_backward_started'] = True
             self.straight_backward_start_time = time.time()
             self.status_message = "정방향 후진 중..."
@@ -714,7 +718,7 @@ class ParkingSystemController:
     def _execute_alignment_phase(self):
         """정렬 단계 실행"""
         if not self.phase_states['alignment_completed']:
-            self._move_backward()
+            self._move_backward(self.parking_config['backward_speed'])
             self.status_message = "차량 정렬 중..."
         
         if self._check_alignment_completion():
@@ -779,7 +783,7 @@ class ParkingSystemController:
         """수정 후 후진 단계 실행 - 추가 후진 시간 로직 추가"""
         if not self.phase_states['post_correction_backward_started']:
             self._straight_steering()
-            self._move_backward()
+            self._move_backward(self.parking_config['backward_speed'])
             self.phase_states['post_correction_backward_started'] = True
             self.post_correction_backward_start_time = time.time()
             self.status_message = "수정 후 정방향 후진 중..."

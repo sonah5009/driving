@@ -172,7 +172,7 @@ class MotorController:
         duty_percent = abs(speed) / 85
         duty = int(self.size * duty_percent)
         print("set_right_speed duty", duty)
-        
+
         self.motors['motor_3'].write(0x04, duty)
         self.motors['motor_2'].write(0x04, duty)
         
@@ -265,6 +265,21 @@ class MotorController:
         self.set_right_speed(self.right_speed)
         self.control_motors(control_mode=2)
 
-    def control_motors_parking(self):
+    def control_motors_parking(self, angle, speed, direction='straight'):
+        # _turn_left, _turn_right, _straight_steering, _set_steering_angle
+        # left, right, straight, steering
         """주차 모드에서의 모터 제어"""
+        if direction == 'left':
+            self.left_speed = speed
+        elif direction == 'right':
+            self.right_speed = speed
+        elif direction == 'straight':
+            self.left_speed = speed
+            self.right_speed = speed
+        elif direction == 'steering':
+            self.steering_angle = angle
+            self.steering_speed = speed
+
+        self.set_left_speed(self.left_speed)
+        self.set_right_speed(self.right_speed)
 
