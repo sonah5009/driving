@@ -114,6 +114,7 @@ def main():
 
         while True:
             # 키보드 입력 처리
+            # space 키 처리 부분
             if keyboard.is_pressed('space'):
                 time.sleep(0.3)  # 디바운싱
                 if parking_controller.is_parking_active:
@@ -121,35 +122,17 @@ def main():
                     print("c를 눌러 주차 모드를 종료하세요")
                 elif parking_controller.is_parking_mode:
                     parking_controller.start_parking()
-                    # print("🚗 주차 시작!")
-                elif controller.is_running:
-                    controller.stop_driving()
-                    # print("주행 중지됨")
                 elif not controller.is_running:
                     controller.start_driving()
-                    # print("주행 시작됨")
-            
-            elif keyboard.is_pressed('1') or keyboard.is_pressed('2'):
-                if parking_controller.is_parking_active or parking_controller.is_parking_mode:
-                    print("🚗 주차 모드가 활성화되어 있습니다.")
-                    print("   → P 키를 눌러 주차 모드를 먼저 종료하세요.")
-                else:
-                    prev_mode = controller.control_mode
-                    new_mode = 1 if keyboard.is_pressed('1') else 2
-                    if prev_mode != new_mode:
-                        controller.switch_mode(new_mode)
-                        if new_mode == 2:
-                            print("\n수동 주행 제어:")
-                            print("W/S: 전진/후진")
-                            print("A/D: 좌회전/우회전")
-                            print("R: 긴급 정지")
-                time.sleep(0.3)  # 디바운싱
-            
+                # elif controller.is_running:
+                #     controller.stop_driving()  # 이 부분을 주석 처리 또는 삭제
+
+            # c 키 처리 부분
             elif keyboard.is_pressed('c'):
                 time.sleep(0.3)  # 디바운싱
                 if controller.is_running:
-                    print("🚗 자율주행이 실행 중입니다.")
-                    print("   → Space 키를 눌러 주행을 먼저 중지하세요.")
+                    controller.stop_driving()  # 여기서만 정지!
+                    print("자율주행이 중지되었습니다.")
                 elif parking_controller.is_parking_mode:
                     parking_controller.exit_parking_mode()
                     print("🛑 주차가 강제 종료되었습니다.")
