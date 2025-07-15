@@ -632,12 +632,12 @@ class ParkingSystemController:
                     self._execute_initial_forward_phase()
                 elif self.current_phase == ParkingPhase.FIRST_STOP:
                     self._execute_first_stop_phase()
-                    time.sleep(2)
+                    # time.sleep(2)
                 elif self.current_phase == ParkingPhase.LEFT_TURN_FORWARD:
                     self._execute_left_turn_forward_phase()
                 elif self.current_phase == ParkingPhase.SECOND_STOP:
                     self._execute_second_stop_phase()
-                    time.sleep(2)
+                    # time.sleep(2)
                 elif self.current_phase == ParkingPhase.RIGHT_TURN_BACKWARD:
                     self._execute_right_turn_backward_phase()
                 elif self.current_phase == ParkingPhase.STRAIGHT_BACKWARD:
@@ -652,7 +652,7 @@ class ParkingSystemController:
                     self._execute_post_correction_backward_phase()
                 elif self.current_phase == ParkingPhase.PARKING_COMPLETE_STOP:
                     self._execute_parking_complete_stop_phase()
-                    time.sleep(2)
+                    # time.sleep(2)
                 elif self.current_phase == ParkingPhase.FINAL_FORWARD:
                     self._execute_final_forward_phase()
                 elif self.current_phase == ParkingPhase.COMPLETED:
