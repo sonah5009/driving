@@ -214,6 +214,11 @@ class ParkingSystemController:
             
             print("🚗 주차 모드 진입")
             
+            # 바퀴 0도로 초기화
+            self.motor_controller.steering_angle = 0
+            self.motor_controller.steering_speed = 0
+            self.motor_controller.stay(0, 3)
+            
             # 센서 초기화
             if not self.initialize_sensors():
                 print("❌ 센서 초기화 실패! 주차 모드에 진입할 수 없습니다.")
