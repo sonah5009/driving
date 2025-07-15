@@ -214,11 +214,6 @@ class ParkingSystemController:
             
             print("🚗 주차 모드 진입")
             
-            # 바퀴 0도로 초기화
-            self.motor_controller.steering_angle = 0
-            self.motor_controller.steering_speed = 0
-            self.motor_controller.stay(0, 3)
-            
             # 센서 초기화
             if not self.initialize_sensors():
                 print("❌ 센서 초기화 실패! 주차 모드에 진입할 수 없습니다.")
@@ -237,6 +232,13 @@ class ParkingSystemController:
     def start_parking(self):
         """주차 시작"""
         if not self.is_parking_active and self.is_parking_mode:
+            # 바퀴 0도로 초기화
+            print("🔧 바퀴 초기화 중...")
+            self.motor_controller.steering_angle = 0
+            self.motor_controller.steering_speed = 0
+            self.motor_controller.stay(0, 3)
+            time.sleep(1)  # 초기화 대기
+            
             self.is_parking_active = True
             self._reset_phase_states()
             self._set_phase(ParkingPhase.WAITING)
@@ -672,12 +674,14 @@ class ParkingSystemController:
     
     def _execute_waiting_phase(self):
         """대기 단계 실행"""
+        print(f"🔍 [DEBUG] 대기 단계 - 센서 상태: {self.sensor_flags}")
         if not self.phase_states['initial_forward_started']:
             self._set_phase(ParkingPhase.INITIAL_FORWARD)
             self.phase_states['initial_forward_started'] = True
     
     def _execute_initial_forward_phase(self):
         """초기 전진 단계 실행"""
+        print(f"🔍 [DEBUG] 초기 전진 단계 - 센서 거리: {self.sensor_distances}")
         self._move_forward(self.parking_config['forward_speed'])
         self._straight_steering()
         self.status_message = "똑바로 전진 중..."
