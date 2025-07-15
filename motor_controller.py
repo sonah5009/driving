@@ -271,11 +271,14 @@ class MotorController:
         """주차 모드에서의 모터 제어"""
         if direction == 'left':
             self.left_speed = speed
+            self.left(angle, 3)
         elif direction == 'right':
             self.right_speed = speed
+            self.right(angle, 3)
         elif direction == 'straight':
             self.left_speed = speed
             self.right_speed = speed
+            self.stay(speed, 3)
         elif direction == 'steering':
             self.steering_angle = angle
             self.steering_speed = speed
