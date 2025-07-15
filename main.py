@@ -183,13 +183,14 @@ def main():
 
 
             # 프레임 처리 (주차 시스템이 비활성화된 경우에만)
-            ret, frame = cap.read()
-            if not ret:
-                print("프레임을 읽을 수 없습니다.")
-                break
+            if not parking_controller.is_parking_active:
+                ret, frame = cap.read()
+                if not ret:
+                    print("프레임을 읽을 수 없습니다.")
+                    break
 
-            # 이미지 처리 및 차량 제어 (주차 시스템이 비활성화된 경우에만)
-            controller.process_and_control(frame)
+                # 이미지 처리 및 차량 제어 (주차 시스템이 비활성화된 경우에만)
+                controller.process_and_control(frame)
             
 
     except KeyboardInterrupt:
