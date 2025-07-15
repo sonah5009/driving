@@ -280,8 +280,6 @@ class MotorController:
             self.right_speed = speed
             # self.steering_speed = speed
             self.stay(speed, 3)
-            self.left(speed, 3)
-            self.right(speed, 3)
         elif direction == 'steering':
             self.steering_angle = angle
             self.steering_speed = speed
