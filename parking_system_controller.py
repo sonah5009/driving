@@ -126,9 +126,9 @@ class ParkingSystemController:
         # 각 단계별로 직접 수정 가능
         self.parking_config = {
             # ===== 속도 설정 =====
-            'forward_speed': 50,      # 전진 속도 (0-100)
-            'backward_speed': 40,     # 후진 속도 (0-100)
-            'steering_speed': 50,     # 조향 속도 (0-100)
+            'forward_speed': 50.0,      # 전진 속도 (0-100)
+            'backward_speed': 40.0,     # 후진 속도 (0-100)
+            'steering_speed': 50.0,     # 조향 속도 (0-100)
             
             # ===== 조향각 설정 (각 단계별로 직접 수정) =====
             'left_turn_angle': -50,   # 좌회전 각도 (3단계: LEFT_TURN_FORWARD)
@@ -540,6 +540,7 @@ class ParkingSystemController:
     
     def _move_forward(self, speed=None):
         """전진"""
+        print(f"[PARKING_DEBUG] 전진: {speed} m/s")
         speed = speed or self.parking_config['forward_speed']
         self.motor_controller.left_speed = speed
         self.motor_controller.right_speed = speed
@@ -548,6 +549,7 @@ class ParkingSystemController:
     
     def _move_backward(self, speed=None):
         """후진"""
+        print(f"[PARKING_DEBUG] 후진: {speed} m/s")
         speed = speed or self.parking_config['backward_speed']
         self.motor_controller.left_speed = -speed
         self.motor_controller.right_speed = -speed

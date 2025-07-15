@@ -155,6 +155,7 @@ class MotorController:
         """왼쪽 모터 속도 설정"""
         duty_percent = abs(speed) / 85
         duty = int(self.size * duty_percent)
+        print("set_left_speed duty", duty)
         
         self.motors['motor_0'].write(0x04, duty)
         self.motors['motor_1'].write(0x04, duty)
@@ -170,6 +171,7 @@ class MotorController:
         """오른쪽 모터 속도 설정"""
         duty_percent = abs(speed) / 85
         duty = int(self.size * duty_percent)
+        print("set_right_speed duty", duty)
         
         self.motors['motor_3'].write(0x04, duty)
         self.motors['motor_2'].write(0x04, duty)
