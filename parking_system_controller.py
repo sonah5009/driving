@@ -543,12 +543,16 @@ class ParkingSystemController:
         speed = speed or self.parking_config['forward_speed']
         self.motor_controller.left_speed = speed
         self.motor_controller.right_speed = speed
+        self.motor_controller.set_left_speed(speed)
+        self.motor_controller.set_right_speed(speed)
     
     def _move_backward(self, speed=None):
         """후진"""
         speed = speed or self.parking_config['backward_speed']
         self.motor_controller.left_speed = -speed
         self.motor_controller.right_speed = -speed
+        self.motor_controller.set_left_speed(speed)
+        self.motor_controller.set_right_speed(speed)
     
     def _turn_left(self):
         """좌회전 - 설정된 각도로 조향"""
