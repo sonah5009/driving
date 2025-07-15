@@ -317,18 +317,24 @@ class ParkingSystemController:
         Args:
             sensor_data: 센서 거리 데이터 딕셔너리
         """
+        # 디버깅: 받은 센서 데이터 출력
+        print(f"🔍 [받은 센서 데이터] {sensor_data}")
+        
         # 0이면 이전 값 유지, 아니면 업데이트
         for key, value in sensor_data.items():
             if value == 0:
                 continue  # 0이면 무시
+            old_value = self.sensor_distances.get(key, 0)
             self.sensor_distances[key] = value
+            if old_value != value:
+                print(f"🔄 {key} 센서 값 업데이트: {old_value:.1f}cm → {value:.1f}cm")
         
-            # 센서별 거리 값 로그 출력
-            print(f"📏 [센서 거리] FR:{sensor_data.get('front_right', 0):.1f}cm, "
-                f"ML:{sensor_data.get('middle_left', 0):.1f}cm, "
-                f"MR:{sensor_data.get('middle_right', 0):.1f}cm, "
-                f"RL:{sensor_data.get('rear_left', 0):.1f}cm, "
-                f"RR:{sensor_data.get('rear_right', 0):.1f}cm")
+        # 센서별 거리 값 로그 출력 (업데이트된 값 사용)
+        print(f"📏 [센서 거리] FR:{self.sensor_distances.get('front_right', 0):.1f}cm, "
+            f"ML:{self.sensor_distances.get('middle_left', 0):.1f}cm, "
+            f"MR:{self.sensor_distances.get('middle_right', 0):.1f}cm, "
+            f"RL:{self.sensor_distances.get('rear_left', 0):.1f}cm, "
+            f"RR:{self.sensor_distances.get('rear_right', 0):.1f}cm")
 
     def read_ultrasonic_sensors(self):
         """
@@ -345,9 +351,11 @@ class ParkingSystemController:
                     # 실제 센서에서 데이터 읽기
                     distance = self._read_single_sensor(ultrasonic_id)
                     sensor_data[sensor_name] = distance
+                    print(f"🔍 {sensor_name}({ultrasonic_id}) → {distance:.1f}cm")
                 else:
                     # 센서가 없으면 기본값 사용
                     sensor_data[sensor_name] = 1000
+                    print(f"⚠️ {sensor_name}({ultrasonic_id}) → 센서 없음")
             
             return sensor_data
             
