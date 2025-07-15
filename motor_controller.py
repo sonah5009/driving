@@ -278,7 +278,7 @@ class MotorController:
         elif direction == 'straight':
             self.left_speed = speed
             self.right_speed = speed
-            self.steering_speed = speed
+            # self.steering_speed = speed
             self.stay(speed, 3)
             # self.left(speed, 3)
             # self.right(speed, 3)
