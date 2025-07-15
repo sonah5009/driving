@@ -47,12 +47,12 @@ class ParkingSystemController:
         
         # 초음파 센서 매핑 (센서 위치별)
         self.sensor_mapping = {
-            "front_right": "ultrasonic_0",    # 좌측 하단
-            "middle_left": "ultrasonic_1",    # 좌측 중단
+            "후방좌측": "ultrasonic_0",    # 좌측 하단
+            "중간좌측": "ultrasonic_1",    # 좌측 중단
             
-            "middle_right": "ultrasonic_2",   # 우측 하단
-            "rear_left": "ultrasonic_3",      # 우측 중단
-            "rear_right": "ultrasonic_4"      # 우측 상단
+            "후방우측": "ultrasonic_2",   # 우측 하단
+            "중간우측": "ultrasonic_3",      # 우측 중단
+            "전방우측": "ultrasonic_4"      # 우측 상단
         }
         
         # 주차 상태 변수
@@ -67,25 +67,25 @@ class ParkingSystemController:
         
         # 센서 데이터
         self.sensor_distances = {
-            "front_right": 100,
-            "middle_left": 100,
-            "middle_right": 100,
-            "rear_left": 100,
-            "rear_right": 100
+            "전방우측": 100,
+            "중간좌측": 100,
+            "중간우측": 100,
+            "후방좌측": 100,
+            "후방우측": 100
         }
         
         # 이전 센서 값 (변화 감지용)
         self.previous_distances = {
-            "front_right": -1,
-            "middle_right": -1,
-            "rear_right": -1
+            "전방우측": -1,
+            "중간우측": -1,
+            "후방우측": -1
         }
         
         # 센서 감지 상태 플래그
         self.sensor_flags = {
-            "front_right": False,
-            "middle_right": False,
-            "rear_right": False
+            "전방우측": False,
+            "중간우측": False,
+            "후방우측": False
         }
         
         # 주차 단계별 상태 변수
@@ -330,11 +330,11 @@ class ParkingSystemController:
                 print(f"🔄 {key} 센서 값 업데이트: {old_value:.1f}cm → {value:.1f}cm")
         
         # 센서별 거리 값 로그 출력 (업데이트된 값 사용)
-        print(f"📏 [센서 거리] FR:{self.sensor_distances.get('front_right', 0):.1f}cm, "
-            f"ML:{self.sensor_distances.get('middle_left', 0):.1f}cm, "
-            f"MR:{self.sensor_distances.get('middle_right', 0):.1f}cm, "
-            f"RL:{self.sensor_distances.get('rear_left', 0):.1f}cm, "
-            f"RR:{self.sensor_distances.get('rear_right', 0):.1f}cm")
+        print(f"📏 [센서 거리] 전방우측:{self.sensor_distances.get('전방우측', 0):.1f}cm, "
+            f"중간좌측:{self.sensor_distances.get('중간좌측', 0):.1f}cm, "
+            f"중간우측:{self.sensor_distances.get('중간우측', 0):.1f}cm, "
+            f"후방좌측:{self.sensor_distances.get('후방좌측', 0):.1f}cm, "
+            f"후방우측:{self.sensor_distances.get('후방우측', 0):.1f}cm")
 
     def read_ultrasonic_sensors(self):
         """
@@ -404,7 +404,17 @@ class ParkingSystemController:
                     max_distance = ULTRASONIC_CONFIG['MAX_DISTANCE']   # mm를 cm로 변환
                     
                     if min_distance <= distance_cm <= max_distance:
-                        print(f"✅ {sensor_id} 거리 읽기 성공: {distance_cm:.1f}cm")
+                        # 센서 ID를 한국어 이름으로 변환
+                        sensor_name_kr = None
+                        for name, id_mapping in self.sensor_mapping.items():
+                            if id_mapping == sensor_id:
+                                sensor_name_kr = name
+                                break
+                        
+                        if sensor_name_kr:
+                            print(f"✅ {sensor_id} ({sensor_name_kr}) 거리 읽기 성공: {distance_cm:.1f}cm")
+                        else:
+                            print(f"✅ {sensor_id} 거리 읽기 성공: {distance_cm:.1f}cm")
                         return distance_cm
                     else:
                         print(f"⚠️ {sensor_id} 거리 범위 초과: 1000cm (범위: {min_distance:.1f}~{max_distance:.1f}cm)")
@@ -428,13 +438,13 @@ class ParkingSystemController:
     def _check_sensor_detection(self):
         """센서 감지 상태 확인 (첫 번째 정지 조건)"""
         current_distances = {
-            "front_right": self._get_sensor_distance("front_right"),
-            "middle_right": self._get_sensor_distance("middle_right"),
-            "rear_right": self._get_sensor_distance("rear_right")
+            "전방우측": self._get_sensor_distance("전방우측"),
+            "중간우측": self._get_sensor_distance("중간우측"),
+            "후방우측": self._get_sensor_distance("후방우측")
         }
         
         # 각 센서별로 개별적으로 작아졌다가 커지는지 확인
-        for sensor_name in ["front_right", "middle_right", "rear_right"]:
+        for sensor_name in ["전방우측", "중간우측", "후방우측"]:
             current = current_distances[sensor_name]
             previous = self.previous_distances[sensor_name]
             
@@ -447,8 +457,8 @@ class ParkingSystemController:
         
         # 모든 우측 센서가 한 번씩 작아졌다가 커졌는지 확인
         if all(self.sensor_flags.values()) and not self.phase_states['first_stop_completed']:
-            print(f"🎯 모든 우측 센서 감지 완료! FR:{current_distances['front_right']:.1f}cm, "
-                  f"MR:{current_distances['middle_right']:.1f}cm, RR:{current_distances['rear_right']:.1f}cm")
+            print(f"🎯 모든 우측 센서 감지 완료! 전방우측:{current_distances['전방우측']:.1f}cm, "
+                  f"중간우측:{current_distances['중간우측']:.1f}cm, 후방우측:{current_distances['후방우측']:.1f}cm")
             self.status_message = "모든 우측 센서 감지 완료! 정지 신호!"
             return True
         
@@ -457,11 +467,11 @@ class ParkingSystemController:
     
     def _check_second_stop_condition(self):
         """두 번째 정지 조건 확인"""
-        rear_right_current = self._get_sensor_distance("rear_right")
+        rear_right_current = self._get_sensor_distance("후방우측")
         
-        if rear_right_current > 0 and self.previous_distances["rear_right"] > 0:
+        if rear_right_current > 0 and self.previous_distances["후방우측"] > 0:
             # 직접 수정: 10cm → 원하는 값으로 변경
-            if rear_right_current > self.previous_distances["rear_right"] + self.parking_config['second_stop_threshold']:
+            if rear_right_current > self.previous_distances["후방우측"] + self.parking_config['second_stop_threshold']:
                 self.status_message = "두 번째 정지 신호 감지!"
                 return True
         
@@ -469,7 +479,7 @@ class ParkingSystemController:
     
     def _check_backward_completion(self):
         """후진 완료 조건 확인"""
-        front_right_distance = self._get_sensor_distance("front_right")
+        front_right_distance = self._get_sensor_distance("전방우측")
         
         if front_right_distance <= self.parking_config['stop_distance']:
             self.status_message = "후진 완료!"
@@ -479,14 +489,14 @@ class ParkingSystemController:
     
     def _check_alignment_completion(self):
         """차량 정렬 완료 조건 확인"""
-        front_right_distance = self._get_sensor_distance("front_right")
-        rear_right_distance = self._get_sensor_distance("rear_right")
+        front_right_distance = self._get_sensor_distance("전방우측")
+        rear_right_distance = self._get_sensor_distance("후방우측")
         
         # 센서 값이 유효한지 확인
         if front_right_distance <= 0 or rear_right_distance <= 0:
             return False
         
-        # front_right와 rear_right 값의 차이 계산
+        # 전방우측과 후방우측 값의 차이 계산
         distance_diff = front_right_distance - rear_right_distance
         tolerance = self.parking_config['alignment_tolerance']
         
@@ -497,12 +507,12 @@ class ParkingSystemController:
         else:
             # 차량 정렬을 위한 조향 조정 - 직접 수정 가능
             if distance_diff > 0:
-                # front_right가 더 크면 왼쪽으로 조향
+                # 전방우측이 더 크면 왼쪽으로 조향
                 # 직접 수정: 5도 → 원하는 값으로 변경
                 self._set_steering_angle(-self.parking_config['alignment_steering_angle'])  # -5도
                 self.status_message = "왼쪽 조향으로 정렬 중..."
             else:
-                # rear_right가 더 크면 오른쪽으로 조향
+                # 후방우측이 더 크면 오른쪽으로 조향
                 # 직접 수정: 5도 → 원하는 값으로 변경
                 self._set_steering_angle(self.parking_config['alignment_steering_angle'])  # +5도
                 self.status_message = "오른쪽 조향으로 정렬 중..."
@@ -511,15 +521,15 @@ class ParkingSystemController:
     
     def _check_position_correction_needed(self):
         """위치 수정 필요 여부 확인"""
-        middle_right_distance = self._get_sensor_distance("middle_right")
-        middle_left_distance = self._get_sensor_distance("middle_left")
+        middle_right_distance = self._get_sensor_distance("중간우측")
+        middle_left_distance = self._get_sensor_distance("중간좌측")
         
         # 센서 값이 유효한지 확인
         if middle_right_distance <= 0 and middle_left_distance <= 0:
             self.status_message = "주차 완료!"
             return False
         
-        # middle_right와 middle_left 값의 차이 계산
+        # 중간우측과 중간좌측 값의 차이 계산
         distance_diff = abs(middle_right_distance - middle_left_distance)
         correction_threshold = self.parking_config['correction_threshold']
         
@@ -605,9 +615,9 @@ class ParkingSystemController:
                 self.update_sensor_data(sensor_data)
                 
                 # 센서 데이터 출력 (디버깅용)
-                print(f"🔍 센서 데이터 - 전방우측: {sensor_data['front_right']:.1f}cm, "
-                      f"중간우측: {sensor_data['middle_right']:.1f}cm, "
-                      f"후방우측: {sensor_data['rear_right']:.1f}cm")
+                print(f"🔍 센서 데이터 - 전방우측: {sensor_data['전방우측']:.1f}cm, "
+                      f"중간우측: {sensor_data['중간우측']:.1f}cm, "
+                      f"후방우측: {sensor_data['후방우측']:.1f}cm")
                 
                 if self.current_phase == ParkingPhase.WAITING:
                     self._execute_waiting_phase()
@@ -799,14 +809,14 @@ class ParkingSystemController:
             self.post_correction_backward_start_time = time.time()
             self.status_message = "수정 후 정방향 후진 중..."
         
-        # front_right 센서 거리 확인
-        front_right_distance = self._get_sensor_distance("front_right")
+        # 전방우측 센서 거리 확인
+        front_right_distance = self._get_sensor_distance("전방우측")
         
-        # front_right가 40cm 이하가 되면 추가 후진 시작 시간 기록
+        # 전방우측이 40cm 이하가 되면 추가 후진 시작 시간 기록
         if front_right_distance <= self.parking_config['stop_distance']:
             if self.additional_backward_start_time is None:
                 self.additional_backward_start_time = time.time()
-                self.status_message = "front_right 40cm 이하! 추가 정방향 후진 시작..."
+                self.status_message = "전방우측 40cm 이하! 추가 정방향 후진 시작..."
             elif self._check_time_elapsed(self.additional_backward_start_time, 
                                         self.parking_config['additional_backward_duration']):
                 self._stop_vehicle()
@@ -833,11 +843,11 @@ class ParkingSystemController:
             self.phase_states['parking_completion_forward_started'] = True
             self.status_message = "최종 정방향 주행 중..."
         
-        # rear_right 갑작스러운 증가 감지 - 직접 수정 가능
-        rear_right_current = self._get_sensor_distance("rear_right")
-        if (self.previous_distances["rear_right"] > 0 and 
+        # 후방우측 갑작스러운 증가 감지 - 직접 수정 가능
+        rear_right_current = self._get_sensor_distance("후방우측")
+        if (self.previous_distances["후방우측"] > 0 and 
             # 직접 수정: 15cm → 원하는 값으로 변경
-            rear_right_current > self.previous_distances["rear_right"] + self.parking_config['rear_right_increase_threshold']):
+            rear_right_current > self.previous_distances["후방우측"] + self.parking_config['rear_right_increase_threshold']):
             
             # 우회전 시작
             if not self.phase_states['right_turn_after_increase_started']:
@@ -948,11 +958,11 @@ class ParkingSystemController:
                 
                 # 센서 거리 출력
                 distances = status['sensor_distances']
-                print(f"   센서: 전방우측={distances['front_right']:.1f}, "
-                        f"중간좌측={distances['middle_left']:.1f}, "
-                        f"중간우측={distances['middle_right']:.1f}, "
-                        f"후방좌측={distances['rear_left']:.1f}, "
-                        f"후방우측={distances['rear_right']:.1f}")
+                print(f"   센서: 전방우측={distances['전방우측']:.1f}, "
+                        f"중간좌측={distances['중간좌측']:.1f}, "
+                        f"중간우측={distances['중간우측']:.1f}, "
+                        f"후방좌측={distances['후방좌측']:.1f}, "
+                        f"후방우측={distances['후방우측']:.1f}")
                 
             except Exception as e:
                 print(f"❌ 상태 모니터링 오류: {e}")
