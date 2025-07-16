@@ -22,12 +22,9 @@ class ParkingPhase(Enum):
     RIGHT_TURN_BACKWARD = 5
     STRAIGHT_BACKWARD = 6
     ALIGNMENT = 7
-    POSITION_CHECK = 8
-    CORRECTION = 9
-    POST_CORRECTION_BACKWARD = 10
-    PARKING_COMPLETE_STOP = 11
-    FINAL_FORWARD = 12
-    COMPLETED = 13
+    PARKING_COMPLETE_STOP = 8
+    FINAL_FORWARD = 9
+    COMPLETED = 10
 
 class ParkingSystemController:
     """자율주차 시스템 컨트롤러"""
@@ -47,12 +44,11 @@ class ParkingSystemController:
         
         # 초음파 센서 매핑 (센서 위치별)
         self.sensor_mapping = {
-            "후방좌측": "ultrasonic_0",    # 좌측 하단
-            "중간좌측": "ultrasonic_1",    # 좌측 중단
-            
-            "후방우측": "ultrasonic_2",   # 우측 하단
-            "중간우측": "ultrasonic_3",      # 우측 중단
-            "전방우측": "ultrasonic_4"      # 우측 상단
+            "전방우측": "ultrasonic_4",      # 상단 우측
+            "후방우측": "ultrasonic_2",      # 하단 우측
+            "중간좌측": "ultrasonic_1",      # 중단 좌측
+            "후방좌측": "ultrasonic_0",      # 하단 좌측
+            "정후방": "ultrasonic_3"        # 정후방
         }
         
         # 주차 상태 변수
@@ -68,24 +64,24 @@ class ParkingSystemController:
         # 센서 데이터
         self.sensor_distances = {
             "전방우측": 100,
+            "후방우측": 100,
             "중간좌측": 100,
-            "중간우측": 100,
             "후방좌측": 100,
-            "후방우측": 100
+            "정후방": 100
         }
         
         # 이전 센서 값 (변화 감지용)
         self.previous_distances = {
             "전방우측": -1,
-            "중간우측": -1,
-            "후방우측": -1
+            "후방우측": -1,
+            "정후방": -1
         }
         
         # 센서 감지 상태 플래그
         self.sensor_flags = {
             "전방우측": False,
-            "중간우측": False,
-            "후방우측": False
+            "후방우측": False,
+            "정후방": False
         }
         
         # 주차 단계별 상태 변수
@@ -98,9 +94,6 @@ class ParkingSystemController:
             'backward_completed': False,
             'alignment_completed': False,
             'straight_backward_started': False,
-            'correction_started': False,
-            'correction_completed': False,
-            'post_correction_backward_started': False,
             'parking_completion_stop_started': False,
             'parking_completion_forward_started': False,
             'right_turn_after_increase_started': False
@@ -108,20 +101,14 @@ class ParkingSystemController:
         
         # 시간 관련 변수
         self.phase_start_time = None
-        self.correction_start_time = None
         self.backward_start_time = None
         self.straight_backward_start_time = None
-        self.post_correction_backward_start_time = None
         self.parking_completion_stop_start_time = None
         self.right_turn_after_increase_start_time = None
-        self.additional_backward_start_time = None  # 추가 후진 시작 시간
         
         # 센서 읽기 관련 변수
         self.last_sensor_read_time = 0
         self.sensor_read_interval = 0.1  # 센서 읽기 간격 (초)
-        
-        # 수정 관련 변수
-        self.correction_direction = 0  # 수정 방향 (1: 우회전, -1: 좌회전, 0: 미정)
         
         # 주차 설정 - 하드코딩된 값으로 변경
         # 각 단계별로 직접 수정 가능
@@ -134,41 +121,34 @@ class ParkingSystemController:
             # ===== 조향각 설정 (각 단계별로 직접 수정) =====
             'left_turn_angle': -50,   # 좌회전 각도 (3단계: LEFT_TURN_FORWARD)
             'right_turn_angle': 50,   # 우회전 각도 (5단계: RIGHT_TURN_BACKWARD)
-            'correction_angle': 15,   # 수정 조향 각도 (10단계: CORRECTION)
-            'final_right_turn_angle': 20,  # 최종 우회전 각도 (13단계: FINAL_FORWARD)
-            'alignment_steering_angle': 5,  # 정렬 조향 각도 (8단계: ALIGNMENT)
+            'final_right_turn_angle': 20,  # 최종 우회전 각도 (9단계: FINAL_FORWARD)
+            'alignment_steering_angle': 5,  # 정렬 조향 각도 (7단계: ALIGNMENT)
             
             # ===== 센서 거리 설정 (각 단계별로 직접 수정) =====
-            'stop_distance': 40,      # 정지 거리 (cm) - 6단계(STRAIGHT_BACKWARD), 11단계(POST_CORRECTION_BACKWARD)
-            'alignment_tolerance': 3, # 정렬 허용 오차 (cm) - 8단계(ALIGNMENT)
-            'correction_threshold': 10, # 수정 임계값 (cm) - 9단계(POSITION_CHECK)
+            'stop_distance': 40,      # 정지 거리 (cm) - 6단계(STRAIGHT_BACKWARD)
+            'alignment_tolerance': 3, # 정렬 허용 오차 (cm) - 7단계(ALIGNMENT)
             'sensor_detection_threshold': 200,  # 센서 감지 임계값 (cm) - 2단계(FIRST_STOP)
-            'second_stop_threshold': 100,  # 두 번째 정지 임계값 (cm) - 4단계(SECOND_STOP)
-            'rear_right_increase_threshold': 100,  # rear_right 증가 임계값 (cm) - 13단계(FINAL_FORWARD)
+            'second_stop_threshold': 200,  # 두 번째 정지 임계값 (cm) - 4단계(SECOND_STOP)
+            'rear_right_increase_threshold': 100,  # rear_right 증가 임계값 (cm) - 9단계(FINAL_FORWARD)
             
             # ===== 시간 설정 (각 단계별로 직접 수정) =====
-            'straight_backward_duration': 0.3, # 정방향 후진 시간 (초) - 7단계(STRAIGHT_BACKWARD)
-            'correction_duration': 2.0, # 수정 시간 (초) - 10단계(CORRECTION)
-            'parking_stop_duration': 2.0, # 주차 완료 정지 시간 (초) - 12단계(PARKING_COMPLETE_STOP)
-            'right_turn_duration': 1.5,  # 우회전 시간 (초) - 13단계(FINAL_FORWARD)
-            'additional_backward_duration': 0.5,  # 추가 후진 시간 (초) - 11단계(POST_CORRECTION_BACKWARD)
-            'steering_reduction_duration': 2.0,  # 조향각 감소 시간 (초) - 5단계(RIGHT_TURN_BACKWARD)
+            'straight_backward_duration': 0.3, # 정방향 후진 시간 (초) - 6단계(STRAIGHT_BACKWARD)
+            'parking_stop_duration': 2.0, # 주차 완료 정지 시간 (초) - 8단계(PARKING_COMPLETE_STOP)
+            'right_turn_duration': 1.5,  # 우회전 시간 (초) - 9단계(FINAL_FORWARD)
+            'steering_reduction_duration': 10.0,  # 조향각 감소 시간 (초) - 5단계(RIGHT_TURN_BACKWARD)
         }
         
         # ===== 주차 단계별 설정 가이드 =====
         # 1단계: INITIAL_FORWARD - 전진 속도, 직진 조향
-        # 2단계: FIRST_STOP - sensor_detection_threshold (5cm)
-        # 3단계: LEFT_TURN_FORWARD - left_turn_angle (-20도), 전진 속도
-        # 4단계: SECOND_STOP - second_stop_threshold (10cm)
-        # 5단계: RIGHT_TURN_BACKWARD - right_turn_angle (13도), steering_reduction_duration (2초)
+        # 2단계: FIRST_STOP - sensor_detection_threshold (200cm)
+        # 3단계: LEFT_TURN_FORWARD - left_turn_angle (-50도), 전진 속도
+        # 4단계: SECOND_STOP - second_stop_threshold (200cm)
+        # 5단계: RIGHT_TURN_BACKWARD - right_turn_angle (50도), steering_reduction_duration (10초)
         # 6단계: STRAIGHT_BACKWARD - stop_distance (40cm), straight_backward_duration (0.3초)
         # 7단계: ALIGNMENT - alignment_tolerance (3cm), alignment_steering_angle (5도)
-        # 8단계: POSITION_CHECK - correction_threshold (10cm)
-        # 9단계: CORRECTION - correction_angle (15도), correction_duration (2초)
-        # 10단계: POST_CORRECTION_BACKWARD - stop_distance (40cm), additional_backward_duration (0.5초)
-        # 11단계: PARKING_COMPLETE_STOP - parking_stop_duration (2초)
-        # 12단계: FINAL_FORWARD - rear_right_increase_threshold (15cm), final_right_turn_angle (20도), right_turn_duration (1.5초)
-        # 13단계: COMPLETED - 주차 완료
+        # 8단계: PARKING_COMPLETE_STOP - parking_stop_duration (2초)
+        # 9단계: FINAL_FORWARD - rear_right_increase_threshold (100cm), final_right_turn_angle (20도), right_turn_duration (1.5초)
+        # 10단계: COMPLETED - 주차 완료
         
         # 스레드 안전을 위한 락
         self.control_lock = Lock()
@@ -314,8 +294,6 @@ class ParkingSystemController:
         for key in self.phase_states:
             self.phase_states[key] = False
         self.phase_start_time = None
-        self.additional_backward_start_time = None
-        self.correction_direction = 0  # 수정 방향 초기화
     
     def update_sensor_data(self, sensor_data):
         """
@@ -338,10 +316,10 @@ class ParkingSystemController:
         
         # 센서별 거리 값 로그 출력 (업데이트된 값 사용)
         print(f"📏 [센서 거리] 전방우측:{self.sensor_distances.get('전방우측', 0):.1f}cm, "
+            f"후방우측:{self.sensor_distances.get('후방우측', 0):.1f}cm, "
             f"중간좌측:{self.sensor_distances.get('중간좌측', 0):.1f}cm, "
-            f"중간우측:{self.sensor_distances.get('중간우측', 0):.1f}cm, "
             f"후방좌측:{self.sensor_distances.get('후방좌측', 0):.1f}cm, "
-            f"후방우측:{self.sensor_distances.get('후방우측', 0):.1f}cm")
+            f"정후방:{self.sensor_distances.get('정후방', 0):.1f}cm")
 
     def read_ultrasonic_sensors(self):
         """
@@ -446,12 +424,11 @@ class ParkingSystemController:
         """센서 감지 상태 확인 (첫 번째 정지 조건)"""
         current_distances = {
             "전방우측": self._get_sensor_distance("전방우측"),
-            "중간우측": self._get_sensor_distance("중간우측"),
             "후방우측": self._get_sensor_distance("후방우측")
         }
         
         # 각 센서별로 개별적으로 작아졌다가 커지는지 확인
-        for sensor_name in ["전방우측", "중간우측", "후방우측"]:
+        for sensor_name in ["전방우측", "후방우측"]:
             current = current_distances[sensor_name]
             previous = self.previous_distances[sensor_name]
             
@@ -465,7 +442,7 @@ class ParkingSystemController:
         # 모든 우측 센서가 한 번씩 작아졌다가 커졌는지 확인
         if all(self.sensor_flags.values()) and not self.phase_states['first_stop_completed']:
             print(f"🎯 모든 우측 센서 감지 완료! 전방우측:{current_distances['전방우측']:.1f}cm, "
-                  f"중간우측:{current_distances['중간우측']:.1f}cm, 후방우측:{current_distances['후방우측']:.1f}cm")
+                  f"정후방:{current_distances['정후방']:.1f}cm, 후방우측:{current_distances['후방우측']:.1f}cm")
             self.status_message = "모든 우측 센서 감지 완료! 정지 신호!"
             return True
         
@@ -524,30 +501,6 @@ class ParkingSystemController:
                 self._set_steering_angle(self.parking_config['alignment_steering_angle'])  # +5도
                 self.status_message = "오른쪽 조향으로 정렬 중..."
             
-            return False
-    
-    def _check_position_correction_needed(self):
-        """위치 수정 필요 여부 확인"""
-        middle_right_distance = self._get_sensor_distance("중간우측")
-        middle_left_distance = self._get_sensor_distance("중간좌측")
-        
-        # 센서 값이 유효한지 확인
-        if middle_right_distance <= 0 and middle_left_distance <= 0:
-            self.status_message = "주차 완료!"
-            return False
-        
-        # 중간우측과 중간좌측 값의 차이 계산
-        distance_diff = abs(middle_right_distance - middle_left_distance)
-        correction_threshold = self.parking_config['correction_threshold']
-        
-        if distance_diff >= correction_threshold:
-            if middle_right_distance > middle_left_distance:
-                self.status_message = "좌측으로 치우침! 수정 필요!"
-            else:
-                self.status_message = "우측으로 치우침! 수정 필요!"
-            return True
-        else:
-            self.status_message = "주차 완료!"
             return False
     
     def _check_time_elapsed(self, start_time, duration):
@@ -623,7 +576,7 @@ class ParkingSystemController:
                 
                 # 센서 데이터 출력 (디버깅용)
                 print(f"🔍 센서 데이터 - 전방우측: {sensor_data['전방우측']:.1f}cm, "
-                      f"중간우측: {sensor_data['중간우측']:.1f}cm, "
+                      f"정후방: {sensor_data['정후방']:.1f}cm, "
                       f"후방우측: {sensor_data['후방우측']:.1f}cm")
                 
                 if self.current_phase == ParkingPhase.WAITING:
@@ -644,12 +597,6 @@ class ParkingSystemController:
                     self._execute_straight_backward_phase()
                 elif self.current_phase == ParkingPhase.ALIGNMENT:
                     self._execute_alignment_phase()
-                elif self.current_phase == ParkingPhase.POSITION_CHECK:
-                    self._execute_position_check_phase()
-                elif self.current_phase == ParkingPhase.CORRECTION:
-                    self._execute_correction_phase()
-                elif self.current_phase == ParkingPhase.POST_CORRECTION_BACKWARD:
-                    self._execute_post_correction_backward_phase()
                 elif self.current_phase == ParkingPhase.PARKING_COMPLETE_STOP:
                     self._execute_parking_complete_stop_phase()
                     # time.sleep(2)
@@ -757,83 +704,7 @@ class ParkingSystemController:
         if self._check_alignment_completion():
             self.phase_states['alignment_completed'] = True
             self._stop_vehicle()
-            self._set_phase(ParkingPhase.POSITION_CHECK)
-    
-    def _execute_position_check_phase(self):
-        """위치 확인 단계 실행"""
-        if self._check_position_correction_needed():
-            self._set_phase(ParkingPhase.CORRECTION)
-        else:
             self._set_phase(ParkingPhase.PARKING_COMPLETE_STOP)
-    
-    def _execute_correction_phase(self):
-        """수정 단계 실행 - 점진적 각도 변화 추가"""
-        if not self.phase_states['correction_started']:
-            self.correction_start_time = time.time()
-            self.phase_states['correction_started'] = True
-            self._move_forward(self.parking_config['forward_speed'])
-            
-            # 수정 방향 결정 (한 번만)
-            if "좌측으로 치우침" in self.status_message:
-                self.correction_direction = 1  # 우회전 (양수)
-                self.status_message = "우회전으로 수정 시작..."
-            else:
-                self.correction_direction = -1  # 좌회전 (음수)
-                self.status_message = "좌회전으로 수정 시작..."
-        
-        # 점진적 각도 변화 적용
-        if self.correction_start_time is not None:
-            elapsed_time = time.time() - self.correction_start_time
-            correction_duration = self.parking_config['correction_duration']  # 2.0초
-            
-            if elapsed_time < correction_duration:
-                # 2초에 걸쳐 한쪽 끝에서 반대쪽 끝으로 점진적 이동 (시뮬레이션과 일치)
-                if self.correction_direction == 1:  # 우회전 (좌측으로 치우침)
-                    start_angle = self.parking_config['correction_angle']  # +15도
-                    end_angle = -self.parking_config['correction_angle']   # -15도
-                else:  # 좌회전 (우측으로 치우침)
-                    start_angle = -self.parking_config['correction_angle']  # -15도
-                    end_angle = self.parking_config['correction_angle']     # +15도
-                
-                progress_ratio = elapsed_time / correction_duration
-                current_angle = start_angle + (end_angle - start_angle) * progress_ratio
-                
-                # 현재 각도로 조향 설정
-                self._set_steering_angle(current_angle)
-                self.status_message = f"점진적 수정 중... ({current_angle:.1f}도)"
-            else:
-                # 수정 완료 - 직진으로 복귀
-                self._straight_steering()
-                self.status_message = "수정 완료! 직진으로 복귀..."
-        
-        if self._check_time_elapsed(self.correction_start_time, 
-                                  self.parking_config['correction_duration']):
-            self.phase_states['correction_completed'] = True
-            self._stop_vehicle()
-            self._set_phase(ParkingPhase.POST_CORRECTION_BACKWARD)
-    
-    def _execute_post_correction_backward_phase(self):
-        """수정 후 후진 단계 실행 - 추가 후진 시간 로직 추가"""
-        if not self.phase_states['post_correction_backward_started']:
-            self._straight_steering()
-            self._move_backward(self.parking_config['backward_speed'])
-            self.phase_states['post_correction_backward_started'] = True
-            self.post_correction_backward_start_time = time.time()
-            self.status_message = "수정 후 정방향 후진 중..."
-        
-        # 전방우측 센서 거리 확인
-        front_right_distance = self._get_sensor_distance("전방우측")
-        
-        # 전방우측이 40cm 이하가 되면 추가 후진 시작 시간 기록
-        if front_right_distance <= self.parking_config['stop_distance']:
-            if self.additional_backward_start_time is None:
-                self.additional_backward_start_time = time.time()
-                self.status_message = "전방우측 40cm 이하! 추가 정방향 후진 시작..."
-            elif self._check_time_elapsed(self.additional_backward_start_time, 
-                                        self.parking_config['additional_backward_duration']):
-                self._stop_vehicle()
-                self.status_message = "수정 후 정방향 후진 완료!"
-                self._set_phase(ParkingPhase.PARKING_COMPLETE_STOP)
     
     def _execute_parking_complete_stop_phase(self):
         """주차 완료 정지 단계 실행"""
@@ -972,7 +843,7 @@ class ParkingSystemController:
                 distances = status['sensor_distances']
                 print(f"   센서: 전방우측={distances['전방우측']:.1f}, "
                         f"중간좌측={distances['중간좌측']:.1f}, "
-                        f"중간우측={distances['중간우측']:.1f}, "
+                        f"정후방={distances['정후방']:.1f}, "
                         f"후방좌측={distances['후방좌측']:.1f}, "
                         f"후방우측={distances['후방우측']:.1f}")
                 
