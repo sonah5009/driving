@@ -208,9 +208,10 @@ class ParkingSystemController:
             # 바퀴 0도로 초기화
             print("🔧 바퀴 초기화 중...")
             self.motor_controller.steering_angle = 0
-            self.motor_controller.steering_speed = 0
+            self.motor_controller.steering_speed = self.parking_config['steering_speed']
             self.motor_controller.stay(0, 3)
             time.sleep(1)  # 초기화 대기
+            print("🔧바퀴 초기화 완료(steering_angle)")
             
             self.is_parking_active = True
             self._reset_phase_states()
