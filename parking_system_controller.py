@@ -511,23 +511,23 @@ class ParkingSystemController:
         """차량 정지"""
         self.motor_controller.reset_motor_values()
     
-    def _move_forward(self, speed=None):
+    def _move_forward(self):
         """전진"""
-        speed = speed or self.parking_config['forward_speed']
+        speed = self.parking_config['forward_speed']
         print(f"[_move_forward] 전진: {speed} m/s")
         self.motor_controller.left_speed = speed
         self.motor_controller.right_speed = speed
         self.motor_controller.set_left_speed(speed)
         self.motor_controller.set_right_speed(speed)
     
-    def _move_backward(self, speed=None):
+    def _move_backward(self):
         """후진"""
-        speed = speed or self.parking_config['backward_speed']
+        speed = self.parking_config['backward_speed']
         print(f"[_move_backward] 후진: {speed} m/s")
         self.motor_controller.left_speed = -speed
         self.motor_controller.right_speed = -speed
-        self.motor_controller.set_left_speed(speed)
-        self.motor_controller.set_right_speed(speed)
+        self.motor_controller.set_left_speed(-speed)
+        self.motor_controller.set_right_speed(-speed)
     
     def _turn_left(self):
         """좌회전 - 설정된 각도로 조향"""
@@ -603,9 +603,17 @@ class ParkingSystemController:
     def _execute_initial_forward_phase(self):
         """초기 전진 단계 실행"""
         print(f"🔍 [DEBUG] 초기 전진 단계 - 센서 거리: {self.sensor_distances}")
-        self._move_forward(self.parking_config['forward_speed'])
+        # TODO
+        # 속도 조정 가능
+        # 방법 2
+        # self.parking_config['forward_speed'] += 20
+        # 한 번 이렇게 바꾸면 다음 _move_forward 함수 호출때(좌회전 전진 단계)도 이 속도로 감
+        self._move_forward()
         self._straight_steering()
         self.status_message = "똑바로 전진 중..."
+        # 주행하고 설정 원래 값으로 돌아가고 싶으면
+        # self.parking_config['forward_speed'] -= 20
+        # 이렇게 코드 넣어주면 되겠죠?
         
         if self._check_sensor_detection():
             self._set_phase(ParkingPhase.FIRST_STOP)
@@ -619,11 +627,23 @@ class ParkingSystemController:
     
     def _execute_left_turn_forward_phase(self):
         """좌회전 전진 단계 실행"""
+
         if not self.phase_states['left_turn_started']:
+            # TODO
+            # 각도 조정 가능
+            # 영향받는 config 변수: steering_speed, left_turn_angle
+            # 방법 2
+            # self.parking_config['steering_speed'] += 10
+            # angle = self.parking_config['left_turn_angle'] += 10
+
+            # 한 번 이렇게 바꾸면 다음 _turn_left, _move_forward 함수 호출때도 이 속도, 각도로 감
             self._turn_left()
             self._move_forward()
             self.phase_states['left_turn_started'] = True
             self.status_message = "왼쪽 조향 전진 중..."
+            # 주행하고 설정 원래 값으로 돌아가고 싶으면
+            # self.parking_config['steering_speed'] -= 10
+            # angle = self.parking_config['left_turn_angle'] -= 10
         
         if self._check_second_stop_condition():
             self._set_phase(ParkingPhase.SECOND_STOP)
@@ -637,11 +657,22 @@ class ParkingSystemController:
     
     def _execute_right_turn_backward_phase(self):
         """우회전 후진 단계 실행 - 일정한 각도로 후진"""
+
         if not self.phase_states['right_turn_started']:
+            # TODO
+            # 각도 조정 가능
+            # 영향받는 config 변수: steering_speed, right_turn_angle
+            # 방법 1
+            # self.parking_config['steering_speed'] = 100
+            # self.parking_config['right_turn_angle'] = 10
+
+            # 한 번 이렇게 바꾸면 다음 _turn_right, _move_backward 함수 호출때도 이 속도, 각도로 감
+
             self._turn_right()
-            self._move_backward(self.parking_config['backward_speed'])
+            self._move_backward()
             self.phase_states['right_turn_started'] = True
             self.status_message = "오른쪽 조향 후진 중..."
+
         
         if self._check_rear_center_increase():
             self._set_phase(ParkingPhase.STRAIGHT_BACKWARD)
@@ -649,12 +680,22 @@ class ParkingSystemController:
     def _execute_straight_backward_phase(self):
         """정방향 후진 단계 실행"""
         if not self.phase_states['straight_backward_started']:
+            # TODO
+            # 각도 조정 가능
+            # 영향받는 config 변수: steering_speed(_straight_steering 에서 바퀴 0도로 조향시 사용), backward_speed
+            # 방법 2
+            # self.parking_config['steering_speed'] += 10
+
             self._straight_steering()
-            self._move_backward(self.parking_config['backward_speed'])
+            self._move_backward()
             self.phase_states['straight_backward_started'] = True
             self.straight_backward_start_time = time.time()
             self.status_message = "정방향 후진 중..."
+            # 주행하고 설정 원래 값으로 돌아가고 싶으면
+            # self.parking_config['steering_speed'] -= 10
         
+        # TODO
+        # straight_backward_duration 값은 self.parking_config 변수 내부에서 조정 가능
         if self._check_time_elapsed(self.straight_backward_start_time, 
                                   self.parking_config['straight_backward_duration']):
             self._set_phase(ParkingPhase.PARKING_COMPLETE_STOP)
@@ -667,6 +708,8 @@ class ParkingSystemController:
             self.parking_completion_stop_start_time = time.time()
             self.status_message = "주차 완료! 2초 정지 중..."
         
+        # TODO
+        # parking_stop_duration 값은 self.parking_config 변수 내부에서 조정 가능
         if self._check_time_elapsed(self.parking_completion_stop_start_time, 
                                   self.parking_config['parking_stop_duration']):
             self._set_phase(ParkingPhase.FINAL_FORWARD)
@@ -674,10 +717,19 @@ class ParkingSystemController:
     def _execute_final_forward_phase(self):
         """최종 전진 단계 실행 - 우회전 로직 완전 구현"""
         if not self.phase_states['parking_completion_forward_started']:
+            # TODO
+            # 전진 속도 조정 가능
+            # 영향받는 config 변수: steering_speed(_straight_steering 에서 바퀴 0도로 조향시 사용), forward_speed
+            # 방법 2
+            # self.parking_config['forward_speed'] += 10
+
+            # 한 번 이렇게 바꾸면 다음 _move_forward 함수 호출때도 이 속도, 각도로 감
             self._straight_steering()
-            self._move_forward(self.parking_config['forward_speed'])
+            self._move_forward()
             self.phase_states['parking_completion_forward_started'] = True
             self.status_message = "최종 정방향 주행 중..."
+            # 주행하고 설정 원래 값으로 돌아가고 싶으면
+            # self.parking_config['forward_speed'] -= 10
         
         # 후방우측 갑작스러운 증가 감지 - 직접 수정 가능
         rear_right_current = self._get_sensor_distance("후방우측")
