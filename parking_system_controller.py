@@ -513,8 +513,8 @@ class ParkingSystemController:
     
     def _move_forward(self, speed=None):
         """전진"""
-        print(f"[PARKING_DEBUG] 전진: {speed} m/s")
         speed = speed or self.parking_config['forward_speed']
+        print(f"[_move_forward] 전진: {speed} m/s")
         self.motor_controller.left_speed = speed
         self.motor_controller.right_speed = speed
         self.motor_controller.set_left_speed(speed)
@@ -522,8 +522,8 @@ class ParkingSystemController:
     
     def _move_backward(self, speed=None):
         """후진"""
-        print(f"[PARKING_DEBUG] 후진: {speed} m/s")
         speed = speed or self.parking_config['backward_speed']
+        print(f"[_move_backward] 후진: {speed} m/s")
         self.motor_controller.left_speed = -speed
         self.motor_controller.right_speed = -speed
         self.motor_controller.set_left_speed(speed)
@@ -533,20 +533,20 @@ class ParkingSystemController:
         """좌회전 - 설정된 각도로 조향"""
         speed = self.parking_config['steering_speed']
         angle = self.parking_config['left_turn_angle']
-        print(f"[PARKING_DEBUG] 좌회전: {angle}도")
+        print(f"[_turn_left] 좌회전: {angle}도")
         self.motor_controller.control_motors_parking(angle, speed, 'left')
     
     def _turn_right(self):
         """우회전 - 설정된 각도로 조향"""
         speed = self.parking_config['steering_speed']
         angle = self.parking_config['right_turn_angle']
-        print(f"[PARKING_DEBUG] 우회전: {angle}도")
+        print(f"[_turn_right] 우회전: {angle}도")
         self.motor_controller.control_motors_parking(angle, speed, 'right')
     
     def _straight_steering(self):
         """직진 조향 - 0도로 조향"""
         speed = self.parking_config['steering_speed']
-        print(f"[PARKING_DEBUG] 직진: 0도")
+        print(f"[_straight_steering] 직진: 0도 • 조향속도: {speed} m/s")
         self.motor_controller.control_motors_parking(0.0, speed, 'straight')
     
     def execute_parking_cycle(self):
