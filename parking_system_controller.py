@@ -223,6 +223,14 @@ class ParkingSystemController:
             time.sleep(1)  # 초기화 대기
             print("🔧바퀴 초기화 완료(steering_angle)")
             
+            # 센서 플래그 및 이전 거리 값 초기화
+            print("🔧 센서 플래그 초기화 중...")
+            for key in self.sensor_flags:
+                self.sensor_flags[key] = False
+            for key in self.previous_distances:
+                self.previous_distances[key] = -1
+            print("🔧 센서 플래그 초기화 완료")
+            
             self.is_parking_active = True
             self._reset_phase_states()
             self._set_phase(ParkingPhase.WAITING)
@@ -442,6 +450,11 @@ class ParkingSystemController:
             "후방우측": self._get_sensor_distance("후방우측")
         }
         
+        # 디버깅: 현재 센서 상태 출력
+        print(f"🔍 [센서 감지 디버깅] 전방우측: {current_distances['전방우측']:.1f}cm (플래그: {self.sensor_flags['전방우측']}), "
+              f"후방우측: {current_distances['후방우측']:.1f}cm (플래그: {self.sensor_flags['후방우측']})")
+        print(f"🔍 [이전 거리] 전방우측: {self.previous_distances['전방우측']:.1f}cm, 후방우측: {self.previous_distances['후방우측']:.1f}cm")
+        
         # 각 센서별로 개별적으로 작아졌다가 커지는지 확인
         for sensor_name in ["전방우측", "후방우측"]:
             current = current_distances[sensor_name]
@@ -449,10 +462,14 @@ class ParkingSystemController:
             
             # 아직 감지되지 않은 센서만 확인
             if not self.sensor_flags[sensor_name] and previous > 0:
-                # 직접 수정: 5cm → 원하는 값으로 변경
-                if current > previous + self.parking_config['sensor_detection_threshold']:  # 200cm 이상 증가
+                threshold = self.parking_config['sensor_detection_threshold']
+                if current > previous + threshold:
                     self.sensor_flags[sensor_name] = True
-                    print(f"✅ {sensor_name} 센서 감지 완료! (이전: {previous:.1f}cm → 현재: {current:.1f}cm)")
+                    print(f"✅ {sensor_name} 센서 감지 완료! (이전: {previous:.1f}cm → 현재: {current:.1f}cm, 증가량: {current - previous:.1f}cm, 임계값: {threshold}cm)")
+                else:
+                    print(f"⏳ {sensor_name} 센서 증가량 부족: {current - previous:.1f}cm (임계값: {threshold}cm)")
+            elif not self.sensor_flags[sensor_name] and previous <= 0:
+                print(f"⏳ {sensor_name} 센서 이전 값이 유효하지 않음: {previous:.1f}cm")
         
         # 모든 우측 센서가 한 번씩 작아졌다가 커졌는지 확인
         if all(self.sensor_flags.values()) and not self.phase_states['first_stop_completed']:
