@@ -653,7 +653,9 @@ class ParkingSystemController:
         # 이렇게 코드 넣어주면 되겠죠?
         
         if self._check_sensor_detection():
+            print("==========================🎯 센서 감지 완료! FIRST_STOP 단계로 전환==========================")
             self._set_phase(ParkingPhase.FIRST_STOP)
+            print("=======================current phase: ", self.current_phase, "=======================")
     
     def _execute_first_stop_phase(self):
         """첫 번째 정지 단계 실행"""
