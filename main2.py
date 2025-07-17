@@ -65,23 +65,10 @@ def main():
         'right_turn_angle': 50
     }
     parking_controller = HardCodeController(controller.motor_controller, parking_config)
-    
-    # HardCodeController만 사용할 것이므로 주차 관련 변수/스레드 제거
-    # parking_thread = None
-    # monitor_thread = None
-    # threads_started = False
-    
+
     try:
         # 카메라 초기화
-        camera_index = 0
 
-        cap = cv2.VideoCapture(camera_index)
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-
-        if not cap.isOpened():
-            print("카메라를 열 수 없습니다.")
-            return
 
         # 시작 시 모드 선택
         print("\n주행 모드를 선택하세요:")
@@ -122,7 +109,7 @@ def main():
         while True:
             # space 키를 누르면 커스텀 시퀀스 실행 후 break
             if keyboard.is_pressed('space'):
-                time.sleep(0.3)  # 디바운싱
+                # time.sleep(0.3)  # 디바운싱
                 parking_controller.run_custom_sequence()
                 print("🔄 커스텀 주차 시퀀스 시작됨")
                 break
@@ -131,20 +118,10 @@ def main():
                 print("\n프로그램을 종료합니다.")
                 break
 
-            # 프레임 처리 (주차 시스템이 비활성화된 경우에만)
-            ret, frame = cap.read()
-            if not ret:
-                print("프레임을 읽을 수 없습니다.")
-                break
-            controller.process_and_control(frame)
-            
 
     except KeyboardInterrupt:
         print("\n사용자에 의해 중지되었습니다.")
     finally:
-        # 리소스 정리
-        cap.release()
-        cv2.destroyAllWindows()
         controller.stop_driving()
         print("모든 시스템이 정리되었습니다.")
 
