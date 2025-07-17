@@ -19,11 +19,11 @@ ADDRESS_RANGE = 0x10000
 
 # 초음파 센서 주소 설정 (주차 시스템용)
 ULTRASONIC_ADDRESSES = {
-    'ultrasonic_4': 0x00B0040000,   # 우측 상단
-    'ultrasonic_2': 0x00B0020000,  # 우측 하단
-    'ultrasonic_1': 0x00B0010000,  # 좌측 중단
-    'ultrasonic_0': 0x00B0000000,  # 좌측 하단
-    'ultrasonic_3': 0x00B0030000   # 정후방
+    'ultrasonic_4': 0x00B0020000,   # 우측 상단
+    'ultrasonic_2': 0x00B0030000,  # 우측 하단
+    'ultrasonic_1': 0x00B0000000,  # 좌측 중단
+    'ultrasonic_0': 0x00B0010000,  # 좌측 하단
+    'ultrasonic_3': 0x00B0040000   # 정후방
 }
 
 
