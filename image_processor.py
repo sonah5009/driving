@@ -38,7 +38,7 @@ def slide_window_in_roi(binary, box, n_win=15, margin=30, minpix=10):
 
     # 화면 하단 10%만 사용하기 위한 y 좌표 필터링
     roi_height = roi.shape[0]
-    use_bottom_10_percent = int(roi_height * 0.8)  # 하단 10% 시작점
+    use_bottom_10_percent = int(roi_height * 0.2)  # 하단 10% 시작점
     
     window_height = roi.shape[0] // n_win
     nonzero = roi.nonzero()
@@ -337,7 +337,7 @@ class ImageProcessor:
             
             # 화면 하단 10%의 픽셀들만 사용
             h = processed_img.shape[0]
-            use_bottom_10_percent = int(h * 0.8)
+            use_bottom_10_percent = int(h * 0.2)
             valid_mask = left_y >= use_bottom_10_percent
             left_x = left_x[valid_mask]
             left_y = left_y[valid_mask]
@@ -360,7 +360,7 @@ class ImageProcessor:
             
             # 화면 하단 10%의 픽셀들만 사용
             h = processed_img.shape[0]
-            use_bottom_10_percent = int(h * 0.8)
+            use_bottom_10_percent = int(h * 0.2)
             valid_mask = right_y >= use_bottom_10_percent
             right_x = right_x[valid_mask]
             right_y = right_y[valid_mask]
@@ -510,7 +510,7 @@ class ImageProcessor:
         h, w = img.shape[0], img.shape[1]
         dst_mat = [[round(w * 0.3), 0], [round(w * 0.7), 0], 
                   [round(w * 0.7), h], [round(w * 0.3), h]]
-        src_mat = [[250, 236], [400, 236], [450, 436], [190, 436]]
+        src_mat = [[250, 216], [400, 216], [450, 416], [190, 416]]
         
         # BEV 변환
         bird_img = self.bird_convert(img, srcmat=src_mat, dstmat=dst_mat)

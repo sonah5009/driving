@@ -107,7 +107,7 @@ class MotorController:
     def right(self, steering_speed, control_mode=1):
         """우회전 제어"""
         if control_mode == 1:  # 자율주행 모드
-            duty_percent = abs(steering_speed) / 5
+            duty_percent = abs(steering_speed) / 1
             duty = int(self.size * duty_percent)            
             # duty = self.auto_duty
         elif control_mode == 2:  # 수동 주행 모드
@@ -128,7 +128,7 @@ class MotorController:
     def left(self, steering_speed, control_mode=1):
         """좌회전 제어"""
         if control_mode == 1:  # 자율주행 모드
-            duty_percent = abs(steering_speed) / 5
+            duty_percent = abs(steering_speed) / 20
             duty = int(self.size * duty_percent)
         elif control_mode == 2:  # 수동 주행 모드
             current_time = time.time()
@@ -137,7 +137,7 @@ class MotorController:
                 self.last_steering_time = current_time
             duty = self.current_duty
         else: 
-            duty_percent = abs(steering_speed) / 5
+            duty_percent = abs(steering_speed) / 3
             duty = int(self.size * duty_percent)
             
         print("left duty", duty)    
@@ -218,13 +218,11 @@ class MotorController:
         abs_angle = angle
         if (-1 <= abs_angle <= 1) :
             return 0
-        elif (1 < abs_angle < 3) :
-            return 17
-        elif (-3 < abs_angle < -1) :
-            return -17
-        elif abs_angle <= -3 :
-            return -20
-        elif abs_angle >= 3 :
+        elif (-6 < abs_angle < -1) :
+            return -2
+        elif abs_angle <= -6 :
+            return -4
+        elif abs_angle >= 1 :
             return 20
 
 
