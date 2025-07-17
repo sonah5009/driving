@@ -60,7 +60,7 @@ def main():
     parking_config = {
         'forward_speed': 45.0,
         'backward_speed': 45.0,
-        'steering_speed': 50.0,
+        'steering_speed': 30.0,
         'left_turn_angle': -50,
         'right_turn_angle': 50
     }

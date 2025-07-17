@@ -162,6 +162,21 @@ class MotorController:
         self.motors['motor_4'].write(0x08, 0)  # valid  steering_left
         self.motors['motor_5'].write(0x04, duty)
         self.motors['motor_4'].write(0x04, duty)
+# motor_controller.py
+  
+    def center(self, speed=0, control_mode=1, settle_time=1.0):
+        """
+        Bring steering to 0° using ADC‑feedback.
+        • speed: PWM duty 기준이 되는 속도값
+        • settle_time: 보정에 허용할 최대 시간(sec)
+        """
+        self.steering_speed = speed
+        self.steering_angle = 0          # 목표각 0°
+        start = time.time()
+
+        while time.time() - start < settle_time:
+            self.control_motors(angle=0, control_mode=control_mode)
+            time.sleep(0.02)             # 20 ms 주기
 
     def set_left_speed(self, speed):
         """왼쪽 모터 속도 설정"""
@@ -295,25 +310,109 @@ class MotorController:
         self.set_right_speed(self.right_speed)
         self.control_motors(control_mode=2)
 
-    def control_motors_parking(self, angle, speed, direction='straight'):
-        # _turn_left, _turn_right, _straight_steering, _set_steering_angle
-        # left, right, straight, steering
-        """주차 모드에서의 모터 제어"""
+#     def control_motors_parking(self, angle, speed, direction='straight'):
+#         # _turn_left, _turn_right, _straight_steering, _set_steering_angle
+#         # left, right, straight, steering
+
+#         """주차 모드에서의 모터 제어"""
+#         if direction == 'left':
+#             self.left_speed = speed
+#             self.left(speed, 3)
+#         elif direction == 'right':
+#             self.right_speed = speed
+#             self.right(speed, 3)
+#         elif direction == 'straight_left':
+#             self.left_speed = speed
+#             self.right_speed = speed
+#             self.steering_angle = angle
+#             self.right(speed, 3)
+#         elif direction == 'straight_right':
+#             self.left_speed = speed
+#             self.right_speed = speed
+#             self.steering_angle = angle
+#             self.left(speed, 3)
+#         elif direction == 'center':
+#             # self.left_speed = speed
+#             # self.right_speed = speed
+#             self.center(speed,3)   # ★
+#             return
+#             # 주차용 정렬만 하면 달리지는 않으므로
+#             # 필요하면 이후 _move_forward/_backward 호출
+
+
+#         self.set_left_speed(self.left_speed)
+#         self.set_right_speed(self.right_speed)
+    def control_motors_parking(
+            self,
+            angle               = 0,
+            speed               = 0,
+            direction           = 'center',
+            settle_time         = 1.0,
+            coarse              = False  # 피드백용 정밀/코스 설정
+        ):
+        """
+        Parking‑mode motor control
+        • angle       : 원하는 조향 각도 (degree)
+        • speed       : 조향용 PWM 기준 duty (0~100)
+        • direction   : 'left' | 'right' | 'straight_left' | 'straight_right'
+                        'center' : 핸들 0° 로 수렴 (피드백 루프)
+        • settle_time : 'center' 모드 정렬 허용 시간(sec)
+        • coarse      : True  => 자율주행 coarse map
+                        False => 정밀 매핑 (주차/수동 권장)
+        """
         if direction == 'left':
-            self.left_speed = speed
-            self.left(speed, 3)
+            self.left_speed  = speed
+            self.left(speed, 3)                     # 조향만
+            self.set_left_speed(self.left_speed)    # 구동 PWM
         elif direction == 'right':
             self.right_speed = speed
             self.right(speed, 3)
-        elif direction == 'straight':
-            self.left_speed = speed
-            self.right_speed = speed
-            # self.steering_speed = speed
-            self.stay(speed, 3)
-        elif direction == 'steering':
-            self.steering_angle = angle
-            self.steering_speed = speed
+            self.set_right_speed(self.right_speed)
 
-        self.set_left_speed(self.left_speed)
-        self.set_right_speed(self.right_speed)
+        elif direction == 'straight_left':
+            # 핸들을 angle 만큼 틀고 직진
+            self.steering_angle = angle
+            self.right(speed, 3)                    # 오른쪽 휠로 핸들 돌림
+            self.left_speed = self.right_speed = speed
+            self.set_left_speed(speed)
+            self.set_right_speed(speed)
+
+        elif direction == 'straight_right':
+            self.steering_angle = angle
+            self.left(speed, 3)
+            self.left_speed = self.right_speed = speed
+            self.set_left_speed(speed)
+            self.set_right_speed(speed)
+
+        elif direction == 'center':
+            # 핸들을 0°로 ±tolerance 안에 들어올 때까지 반복
+            tolerance = 0.3          # ±0.3° 안이면 멈춤 (원하면 조정)
+            settle_time = 1.0        # 최대 1초 동안만 보정
+            steer_pwm   = speed      # 예: 30 정도면 충분
+
+            start = time.time()
+            while time.time() - start < settle_time:
+                adc_deg = self.map_value(               # 현재 핸들 각도(‑20~20°)
+                    self.read_adc(),
+                    self.resistance_most_right,
+                    self.resistance_most_left,
+                    -20, 20
+                )
+
+                if abs(adc_deg) <= tolerance:
+                    # 이미 중앙이면 stay()로 valid 비트 OFF
+                    self.stay(steer_pwm, 3)
+                    break
+
+                if adc_deg > 0:
+                    # 핸들이 오른쪽으로 치우쳤으니 왼쪽으로 돌려야 함
+                    self.left(steer_pwm, 3)     # 모터 4에 PWM 인가
+                else:
+                    # 핸들이 왼쪽으로 치우침 → 오른쪽으로 돌려야
+                    self.right(steer_pwm, 3)    # 모터 5에 PWM 인가
+
+                time.sleep(0.02)                # 20 ms 주기
+
+            # 핸들만 맞췄으므로 구동 바퀴는 건드리지 않는다
+            return
 

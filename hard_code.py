@@ -41,33 +41,56 @@ class HardCodeController:
         print(f"[_turn_right] 우회전: {angle}도")
         self.motor_controller.control_motors_parking(angle, speed, 'right')
     
-    def _straight_steering(self):
+    def _straight_steering_from_left(self):
         """직진 조향 - 0도로 조향"""
         speed = self.parking_config['steering_speed']
         print(f"[_straight_steering] 직진: 0도 • 조향속도: {speed} m/s")
-        self.motor_controller.control_motors_parking(0.0, speed, 'straight')
+        self.motor_controller.control_motors_parking(+30, speed, 'straight_left')
+    
+    def _straight_steering_from_right(self):
+        """직진 조향 - 0도로 조향"""
+        speed = self.parking_config['steering_speed']
+        print(f"[_straight_steering] 직진: 0도 • 조향속도: {speed} m/s")
+        self.motor_controller.control_motors_parking(-30, speed, 'straight_right')
+    
+
+    def _straight_steering(self):
+        steer_pwm = self.parking_config['steering_speed']  # 예: 30
+        print("[_straight_steering] 핸들 중앙 정렬")
+        # 핸들 중앙만 맞추고 차는 정지 상태
+        self.motor_controller.control_motors_parking(
+            angle      = 0,
+            speed      = steer_pwm,
+            direction  = 'center',
+            settle_time= 1.0,
+            coarse     = False         # 정밀 모드
+        )
+
+    
     
     def run_custom_sequence(self):
         """5초간 정방향 전진, 1초간 정지, 왼쪽 조향 후 전진 3초, 우조향 후 후진 5초 시퀀스"""
         import time
-        print("[시퀀스] 5초간 정방향 전진 시작")
+        print("[시퀀스] 3초간 바퀴 정렬 시작")
         self._straight_steering()
+        time.sleep(3)
+        print("[시퀀스] 20초간 정방향 전진 시작")
         self._move_forward()
-        time.sleep(5)
+        time.sleep(3)
         
         print("[시퀀스] 1초간 정지")
         self._stop_vehicle()
         time.sleep(1)
         
-        print("[시퀀스] 왼쪽 조향 후 3초간 전진")
+        print("[시퀀스] 왼쪽 조향 후 6초간 전진")
         self._turn_left()
         time.sleep(0.4)  # 조향 후 대기
         self._move_forward()
-        time.sleep(3)
+        time.sleep(5)
         
         print("[시퀀스] 오른쪽 조향 후 5초간 후진")
         self._turn_right()
-        time.sleep(0.4)  # 조향 후 대기
+        time.sleep(0.3)  # 조향 후 대기
         self._move_backward()
         time.sleep(5)
         
@@ -84,13 +107,14 @@ class HardCodeController:
         print("[시퀀스] 2초간 정방향 전진")
         self._straight_steering()
         self._move_forward()
-        time.sleep(2)
+        time.sleep(4)
         
         print("[시퀀스] 우회전 후 3초간 전진")
+        # self.parking_config["right_turn_angle"] = 
         self._turn_right()
         time.sleep(0.4)  # 조향 후 대기
         self._move_forward()
-        time.sleep(3)
+        time.sleep(5)
         
         print("[시퀀스] 좌회전 후 2초간 후진")
         self._turn_left()
@@ -100,6 +124,7 @@ class HardCodeController:
         
         print("[시퀀스] 10초간 정방향 전진")
         self._straight_steering()
+        time.sleep(1)
         self._move_forward()
         time.sleep(10)
         
