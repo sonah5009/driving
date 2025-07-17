@@ -7,6 +7,7 @@
 import math
 import time
 import numpy as np
+from collections import deque
 from threading import Lock
 from enum import Enum
 from config import (ULTRASONIC_ADDRESSES, ADDRESS_RANGE, 
@@ -126,9 +127,9 @@ class ParkingSystemController:
             'rear_right_increase_threshold': 100,  # rear_right 증가 임계값 (cm) - 9단계(FINAL_FORWARD)
             
             # ===== 시간 설정 (각 단계별로 직접 수정) =====
-            'straight_backward_duration': 0.3, # 정방향 후진 시간 (초) - 6단계(STRAIGHT_BACKWARD)
+            'straight_backward_duration': 3.0, # 정방향 후진 시간 (초) - 6단계(STRAIGHT_BACKWARD)
             'parking_stop_duration': 2.0, # 주차 완료 정지 시간 (초) - 8단계(PARKING_COMPLETE_STOP)
-            'right_turn_duration': 1.5,  # 우회전 시간 (초) - 9단계(FINAL_FORWARD)
+            'right_turn_duration': 3.0,  # 우회전 시간 (초) - 9단계(FINAL_FORWARD)
             'rear_center_wait_duration': 2.0,  # 정후방 센서 증가 감지 후 대기 시간 (초) - 5단계(RIGHT_TURN_BACKWARD)
         }
         
@@ -145,6 +146,15 @@ class ParkingSystemController:
         
         # 스레드 안전을 위한 락
         self.control_lock = Lock()
+
+        # 최근 5개 센서값 저장용 버퍼 추가
+        self.sensor_buffers = {
+            "전방우측": deque(maxlen=5),
+            "후방우측": deque(maxlen=5),
+            "중간좌측": deque(maxlen=5),
+            "후방좌측": deque(maxlen=5),
+            "정후방": deque(maxlen=5)
+        }
 
     def initialize_sensors(self):
         """초음파 센서 초기화 및 연결 상태 확인"""
@@ -305,6 +315,9 @@ class ParkingSystemController:
                 continue  # 0이면 무시
             old_value = self.sensor_distances.get(key, 0)
             self.sensor_distances[key] = value
+            # 버퍼에 값 추가
+            if key in self.sensor_buffers:
+                self.sensor_buffers[key].append(value)
             if old_value != value:
                 print(f"🔄 {key} 센서 값 업데이트: {old_value:.1f}cm → {value:.1f}cm")
         
@@ -410,9 +423,17 @@ class ParkingSystemController:
             print(f"❌ {sensor_id} 센서 읽기 오류: {e}")
             return 1000
     
+    def get_median_sensor_value(self, sensor_name):
+        """해당 센서의 최근 5개 값의 중간값 반환"""
+        buffer = self.sensor_buffers.get(sensor_name, None)
+        if buffer and len(buffer) > 0:
+            return float(np.median(buffer))
+        else:
+            return self.sensor_distances.get(sensor_name, 100)
+    
     def _get_sensor_distance(self, sensor_name):
-        """센서 거리 가져오기"""
-        return self.sensor_distances.get(sensor_name, 100)
+        """센서 거리 가져오기 (최근 5개 중간값 사용)"""
+        return self.get_median_sensor_value(sensor_name)
     
     def _check_sensor_detection(self):
         """센서 감지 상태 확인 (첫 번째 정지 조건)"""
@@ -638,6 +659,7 @@ class ParkingSystemController:
 
             # 한 번 이렇게 바꾸면 다음 _turn_left, _move_forward 함수 호출때도 이 속도, 각도로 감
             self._turn_left()
+            time.sleep(0.4)  # 조향 후 대기
             self._move_forward()
             self.phase_states['left_turn_started'] = True
             self.status_message = "왼쪽 조향 전진 중..."
@@ -669,6 +691,7 @@ class ParkingSystemController:
             # 한 번 이렇게 바꾸면 다음 _turn_right, _move_backward 함수 호출때도 이 속도, 각도로 감
 
             self._turn_right()
+            time.sleep(0.4)  # 조향 후 대기
             self._move_backward()
             self.phase_states['right_turn_started'] = True
             self.status_message = "오른쪽 조향 후진 중..."
@@ -687,6 +710,7 @@ class ParkingSystemController:
             # self.parking_config['steering_speed'] += 10
 
             self._straight_steering()
+            time.sleep(0.4)  # 조향 후 대기
             self._move_backward()
             self.phase_states['straight_backward_started'] = True
             self.straight_backward_start_time = time.time()
@@ -725,6 +749,7 @@ class ParkingSystemController:
 
             # 한 번 이렇게 바꾸면 다음 _move_forward 함수 호출때도 이 속도, 각도로 감
             self._straight_steering()
+            time.sleep(0.4)  # 조향 후 대기
             self._move_forward()
             self.phase_states['parking_completion_forward_started'] = True
             self.status_message = "최종 정방향 주행 중..."
@@ -817,6 +842,10 @@ class ParkingSystemController:
             if hasattr(self, 'rear_center_increase_detected_time'):
                 delattr(self, 'rear_center_increase_detected_time')
             
+            # 센서 버퍼 초기화
+            for key in self.sensor_buffers:
+                self.sensor_buffers[key].clear()
+            
             print("🔄 시스템 리셋 완료")
     
     def parking_cycle_thread(self):
@@ -852,13 +881,12 @@ class ParkingSystemController:
                 status = self.get_status()
                 print(f"📊 단계: {status['phase']} - {status['status_message']}")
                 
-                # 센서 거리 출력
-                distances = status['sensor_distances']
-                print(f"   센서: 전방우측={distances['전방우측']:.1f}, "
-                        f"중간좌측={distances['중간좌측']:.1f}, "
-                        f"정후방={distances['정후방']:.1f}, "
-                        f"후방좌측={distances['후방좌측']:.1f}, "
-                        f"후방우측={distances['후방우측']:.1f}")
+                # 센서 거리 출력 (중간값 사용)
+                print(f"   센서: 전방우측={self.get_median_sensor_value('전방우측'):.1f}, "
+                        f"중간좌측={self.get_median_sensor_value('중간좌측'):.1f}, "
+                        f"정후방={self.get_median_sensor_value('정후방'):.1f}, "
+                        f"후방좌측={self.get_median_sensor_value('후방좌측'):.1f}, "
+                        f"후방우측={self.get_median_sensor_value('후방우측'):.1f}")
                 
             except Exception as e:
                 print(f"❌ 상태 모니터링 오류: {e}")
