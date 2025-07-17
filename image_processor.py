@@ -38,7 +38,7 @@ def slide_window_in_roi(binary, box, n_win=15, margin=30, minpix=10):
 
     # 화면 하단 10%만 사용하기 위한 y 좌표 필터링
     roi_height = roi.shape[0]
-    use_bottom_10_percent = int(roi_height * 0.2)  # 하단 10% 시작점
+    use_bottom_10_percent = int(roi_height * 0.8)  # 하단 10% 시작점
     
     window_height = roi.shape[0] // n_win
     nonzero = roi.nonzero()
@@ -211,7 +211,7 @@ class ImageProcessor:
         
         return masked
 
-    def generate_left_lane_from_right(self, right_x, right_slope, right_intercept, frame_width, lane_width_pixels=200):
+    def generate_left_lane_from_right(self, right_x, right_slope, right_intercept, frame_width, lane_width_pixels=180):
         """
         오른쪽 차선을 기준으로 왼쪽 차선을 생성
         Args:
@@ -337,7 +337,7 @@ class ImageProcessor:
             
             # 화면 하단 10%의 픽셀들만 사용
             h = processed_img.shape[0]
-            use_bottom_10_percent = int(h * 0.5)
+            use_bottom_10_percent = int(h * 0.8)
             valid_mask = left_y >= use_bottom_10_percent
             left_x = left_x[valid_mask]
             left_y = left_y[valid_mask]
@@ -360,7 +360,7 @@ class ImageProcessor:
             
             # 화면 하단 10%의 픽셀들만 사용
             h = processed_img.shape[0]
-            use_bottom_10_percent = int(h * 0.5)
+            use_bottom_10_percent = int(h * 0.8)
             valid_mask = right_y >= use_bottom_10_percent
             right_x = right_x[valid_mask]
             right_y = right_y[valid_mask]
@@ -414,6 +414,7 @@ class ImageProcessor:
         heading_err = -0.1 * (lane_info.left_slope + lane_info.right_slope)
 
         # 5) Kanayama 제어식 (debugging/visualize.py와 동일한 파라미터)
+        #K_y, K_phi, L = 1.0, 3.0, 0.5
         K_y, K_phi, L = 0.3, 0.9, 0.5
         v_r = Fix_Speed
         v = v_r * (math.cos(heading_err))**2
@@ -509,7 +510,7 @@ class ImageProcessor:
         h, w = img.shape[0], img.shape[1]
         dst_mat = [[round(w * 0.3), 0], [round(w * 0.7), 0], 
                   [round(w * 0.7), h], [round(w * 0.3), h]]
-        src_mat = [[238, 276], [382, 276], [450, 436], [200, 436]]
+        src_mat = [[250, 236], [400, 236], [450, 436], [190, 436]]
         
         # BEV 변환
         bird_img = self.bird_convert(img, srcmat=src_mat, dstmat=dst_mat)
@@ -548,7 +549,7 @@ class ImageProcessor:
         # 왼쪽 차선이 검출되지 않았을 때 오른쪽 차선을 기준으로 왼쪽 차선 생성
         if lane_info.left_x == w // 2 and lane_info.right_x != w // 2:
             left_x, left_slope, left_intercept = self.generate_left_lane_from_right(
-                lane_info.right_x, lane_info.right_slope, lane_info.right_intercept, w, lane_width_pixels=200
+                lane_info.right_x, lane_info.right_slope, lane_info.right_intercept, w, lane_width_pixels=180
             )
             lane_info.left_x = left_x
             lane_info.left_slope = left_slope
@@ -558,9 +559,9 @@ class ImageProcessor:
         # 오른쪽 차선이 검출되지 않았을 때 왼쪽 차선을 기준으로 오른쪽 차선 생성
         elif lane_info.right_x == w // 2 and lane_info.left_x != w // 2:
             # 왼쪽 차선을 기준으로 오른쪽 차선 생성 (180픽셀 오른쪽)
-            right_x = lane_info.left_x + 200
+            right_x = lane_info.left_x + 180
             right_slope = lane_info.left_slope  # 기울기는 동일
-            right_intercept = lane_info.left_intercept + 200  # y절편도 동일한 간격만큼 조정
+            right_intercept = lane_info.left_intercept + 180  # y절편도 동일한 간격만큼 조정
             
             # 프레임 범위 내로 제한
             right_x = max(0, min(right_x, w - 1))

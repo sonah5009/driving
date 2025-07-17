@@ -26,6 +26,18 @@ class MotorController:
         self.duty_step = int(self.size * 0.02)  # duty 증가량 (2%)
         self.last_steering_time = time.time()
         
+        
+        
+                # 조향 딜레이 관련 변수 추가
+        #self.angle_change_delay = 0.5  # 각도 변화 시 딜레이 (초)
+        #self.last_angle_change_time = time.time()
+        #self.last_target_angle = 0
+        
+        
+        
+        
+        
+        
         # 제어 변수
         # self.auto_duty = self.min_duty
         self.manual_steering_angle = 0
@@ -38,8 +50,8 @@ class MotorController:
         self.spi.mode = 0b00
         
         # 저항 값 범위 설정
-        self.resistance_most_left = 2850
-        self.resistance_most_right = 2250
+        self.resistance_most_left = 3400
+        self.resistance_most_right = 2800
     @property
     def steering_speed(self):
         return self._steering_speed
@@ -95,7 +107,7 @@ class MotorController:
     def right(self, steering_speed, control_mode=1):
         """우회전 제어"""
         if control_mode == 1:  # 자율주행 모드
-            duty_percent = abs(steering_speed) / 10
+            duty_percent = abs(steering_speed) / 5
             duty = int(self.size * duty_percent)            
             # duty = self.auto_duty
         elif control_mode == 2:  # 수동 주행 모드
@@ -105,7 +117,7 @@ class MotorController:
                 self.last_steering_time = current_time
             duty = self.current_duty
         else:
-            duty_percent = abs(steering_speed) / 10
+            duty_percent = abs(steering_speed) / 5
             duty = int(self.size * duty_percent)
             
         print("right duty", duty)    
@@ -116,7 +128,7 @@ class MotorController:
     def left(self, steering_speed, control_mode=1):
         """좌회전 제어"""
         if control_mode == 1:  # 자율주행 모드
-            duty_percent = abs(steering_speed) / 10
+            duty_percent = abs(steering_speed) / 5
             duty = int(self.size * duty_percent)
         elif control_mode == 2:  # 수동 주행 모드
             current_time = time.time()
@@ -125,7 +137,7 @@ class MotorController:
                 self.last_steering_time = current_time
             duty = self.current_duty
         else: 
-            duty_percent = abs(steering_speed) / 15
+            duty_percent = abs(steering_speed) / 5
             duty = int(self.size * duty_percent)
             
         print("left duty", duty)    
@@ -136,13 +148,13 @@ class MotorController:
     def stay(self, steering_speed, control_mode=1):
         """중립 상태 유지"""
         if control_mode == 1:  # 자율주행 모드
-            duty_percent = abs(steering_speed) / 10
+            duty_percent = abs(steering_speed) / 5
             duty = int(self.size * duty_percent)
         elif control_mode == 2:  # 수동 주행 모드
             self.current_duty = self.min_duty
             duty = self.current_duty
         else:
-            duty_percent = abs(steering_speed) / 15
+            duty_percent = abs(steering_speed) / 5
             duty = int(self.size * duty_percent)
             
         print("stay duty", duty)    
@@ -204,20 +216,30 @@ class MotorController:
     def map_angle_to_range(self, angle):
         """각도를 모터 제어 범위로 매핑"""
         abs_angle = angle
-        if (-1.25 <= abs_angle <= 1.25) :
+        if (-1 <= abs_angle <= 1) :
             return 0
-        elif (1.25 < abs_angle < 4) :
-            return 14.2
-        elif (-4 < abs_angle < -1.25) :
-            return -14.2
-        elif abs_angle <= -4 :
-            return -17.5
-        elif abs_angle >= 4 :
-            return 17.5
+        elif (1 < abs_angle < 3) :
+            return 17
+        elif (-3 < abs_angle < -1) :
+            return -17
+        elif abs_angle <= -3 :
+            return -20
+        elif abs_angle >= 3 :
+            return 20
 
 
 
     def control_motors(self, angle=None, control_mode=1):
+        
+        
+        #current_time = time.time()
+
+        
+        
+        
+        
+        
+        
         """모터 전체 제어"""
         mapped_resistance = self.map_value(
             self.read_adc(),
@@ -230,6 +252,16 @@ class MotorController:
             target_angle = self.map_angle_to_range(angle)
         else:
             target_angle = self.steering_angle
+            
+            
+            # 각도 변화 감지 및 딜레이 적용
+            #if abs(target_angle - self.last_target_angle) > 0.1:  # 각도 변화가 있을 때
+                #if current_time - self.last_angle_change_time < self.angle_change_delay:
+                   # return  # 딜레이 중이면 제어하지 않음
+                #self.last_angle_change_time = current_time
+                #self.last_target_angle = target_angle
+            
+            
             
         tolerance = 0.1
         if abs(mapped_resistance - target_angle) <= tolerance:
