@@ -124,8 +124,8 @@ def main():
                     parking_controller.start_parking()
                 elif not controller.is_running:
                     controller.start_driving()
-                # elif controller.is_running:
-                #     controller.stop_driving()  # 이 부분을 주석 처리 또는 삭제
+                elif controller.is_running:
+                    controller.stop_driving()  # 이 부분을 주석 처리 또는 삭제
 
             # c 키 처리 부분
             elif keyboard.is_pressed('c'):
