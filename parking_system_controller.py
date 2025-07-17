@@ -629,8 +629,9 @@ class ParkingSystemController:
         # 방법 2
         # self.parking_config['forward_speed'] += 20
         # 한 번 이렇게 바꾸면 다음 _move_forward 함수 호출때(좌회전 전진 단계)도 이 속도로 감
-        self._move_forward()
         self._straight_steering()
+        time.sleep(0.4)  # 조향 후 대기
+        self._move_forward()
         self.status_message = "똑바로 전진 중..."
         # 주행하고 설정 원래 값으로 돌아가고 싶으면
         # self.parking_config['forward_speed'] -= 20
