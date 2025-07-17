@@ -122,7 +122,7 @@ class ParkingSystemController:
             
             # ===== 센서 거리 설정 (각 단계별로 직접 수정) =====
             'stop_distance': 40,      # 정지 거리 (cm) - 6단계(STRAIGHT_BACKWARD)
-            'sensor_detection_threshold': 200,  # 센서 감지 임계값 (cm) - 2단계(FIRST_STOP)
+            'sensor_detection_threshold': 100,  # 센서 감지 임계값 (cm) - 2단계(FIRST_STOP)
             'second_stop_threshold': 200,  # 두 번째 정지 임계값 (cm) - 4단계(SECOND_STOP)
             'rear_right_increase_threshold': 100,  # rear_right 증가 임계값 (cm) - 9단계(FINAL_FORWARD)
             
